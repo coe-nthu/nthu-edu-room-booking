@@ -1,0 +1,141 @@
+import { createClient } from '@/utils/supabase/server'
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const createBookingSchema = z.object({
+  roomId: z.string().uuid(),
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+  purpose: z.string().min(1),
+})
+
+type UnavailablePeriod = {
+  day: number // 0-6, 0 is Sunday
+  start: string // "HH:mm"
+  end: string // "HH:mm"
+}
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const json = await request.json()
+    const body = createBookingSchema.parse(json)
+
+    const startTime = new Date(body.startTime)
+    const endTime = new Date(body.endTime)
+
+    if (startTime >= endTime) {
+      return NextResponse.json({ error: '結束時間必須晚於開始時間' }, { status: 400 })
+    }
+
+    // Fetch user profile for role check
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    
+    const isAdmin = profile?.role === 'admin'
+
+    // 1. Check 7-day rule for non-admins
+    if (!isAdmin) {
+      const today = new Date()
+      const minDate = new Date()
+      minDate.setDate(today.getDate() + 7)
+      minDate.setHours(0, 0, 0, 0) 
+      
+      if (startTime < minDate) {
+        return NextResponse.json({ error: '一般使用者需於 7 天前申請' }, { status: 400 })
+      }
+    }
+
+    // 2. Check unavailable periods (including lunch lock if configured)
+    // New logic: check `unavailable_periods` JSONB column
+    const { data: room } = await supabase
+      .from('rooms')
+      .select('unavailable_periods')
+      .eq('id', body.roomId)
+      .single()
+      
+    if (!room) {
+      return NextResponse.json({ error: '空間不存在' }, { status: 404 })
+    }
+
+    if (room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
+      const periods = room.unavailable_periods as UnavailablePeriod[]
+      const bookingDay = startTime.getDay()
+      
+      // Normalize booking times to minutes from start of day
+      const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
+      const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
+      
+      for (const period of periods) {
+        if (period.day === bookingDay) {
+           const [pStartH, pStartM] = period.start.split(':').map(Number)
+           const [pEndH, pEndM] = period.end.split(':').map(Number)
+           
+           const periodStartMins = pStartH * 60 + pStartM
+           const periodEndMins = pEndH * 60 + pEndM
+           
+           // Check overlap: max(start1, start2) < min(end1, end2)
+           if (Math.max(bookingStartMins, periodStartMins) < Math.min(bookingEndMins, periodEndMins)) {
+             return NextResponse.json({ error: `此時段 (${period.start}-${period.end}) 不開放借用` }, { status: 400 })
+           }
+        }
+      }
+    }
+
+    // 3. Check for overlapping bookings
+    const { data: overlaps, error: overlapError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('room_id', body.roomId)
+      .neq('status', 'cancelled')
+      .neq('status', 'rejected')
+      .neq('status', 'cancelled_by_user') // Added check for new status
+      .filter('start_time', 'lt', body.endTime)
+      .filter('end_time', 'gt', body.startTime)
+    
+    if (overlapError) {
+        console.error(overlapError)
+        return NextResponse.json({ error: '系統錯誤' }, { status: 500 })
+    }
+
+    if (overlaps && overlaps.length > 0) {
+      return NextResponse.json({ error: '該時段已被預約' }, { status: 409 })
+    }
+
+    // Create booking
+    const { data: booking, error: createError } = await supabase
+      .from('bookings')
+      .insert({
+        user_id: user.id,
+        room_id: body.roomId,
+        start_time: body.startTime,
+        end_time: body.endTime,
+        purpose: body.purpose,
+        status: isAdmin ? 'approved' : 'pending'
+      })
+      .select()
+      .single()
+
+    if (createError) {
+        console.error(createError)
+        return NextResponse.json({ error: '建立預約失敗' }, { status: 500 })
+    }
+
+    return NextResponse.json(booking)
+  } catch (error) {
+      if (error instanceof z.ZodError) {
+          return NextResponse.json({ error: '無效的資料格式' }, { status: 400 })
+      }
+      console.error(error)
+      return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 })
+  }
+}

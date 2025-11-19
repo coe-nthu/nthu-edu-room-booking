@@ -1,0 +1,75 @@
+import { createClient } from '@/utils/supabase/server'
+
+export type Room = {
+  id: string
+  name: string
+  room_code: string | null
+  capacity: number | null
+  unavailable_periods: any
+  equipment: any
+  floor: string | null
+  room_type: string | null
+}
+
+export async function getRooms(): Promise<Room[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('*')
+    .order('name')
+  
+  if (error) {
+    console.error('Error fetching rooms:', error)
+    return []
+  }
+  
+  return data as Room[]
+}
+
+export type Booking = {
+  id: string
+  room: {
+    name: string
+    room_code: string | null
+    capacity: number | null
+    floor: string | null
+  }
+  start_time: string
+  end_time: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
+  purpose: string
+  created_at: string
+}
+
+export async function getUserBookings(): Promise<Booking[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id,
+      start_time,
+      end_time,
+      status,
+      purpose,
+      created_at,
+      room:rooms (
+        name,
+        room_code,
+        capacity,
+        floor
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching bookings:', error)
+    return []
+  }
+
+  return data as unknown as Booking[]
+}
