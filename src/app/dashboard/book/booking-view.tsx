@@ -8,10 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 type BookingViewProps = {
   rooms: Room[]
+  initialRoomId?: string
 }
 
-export function BookingView({ rooms }: BookingViewProps) {
-  const [selectedRoomId, setSelectedRoomId] = useState<string>(rooms[0]?.id || "")
+export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
+  // Ensure initialRoomId exists in the rooms list, otherwise fallback to first room
+  const defaultRoomId = (initialRoomId && rooms.some(r => r.id === initialRoomId)) 
+    ? initialRoomId 
+    : (rooms[0]?.id || "")
+
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(defaultRoomId)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const [isMounted, setIsMounted] = useState(false)
 

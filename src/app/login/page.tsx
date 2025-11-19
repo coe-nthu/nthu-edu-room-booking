@@ -130,99 +130,99 @@ export default function LoginPage() {
           </div>
 
           <div className="grid gap-6">
-            <Auth
-                supabaseClient={supabase}
+          <Auth
+            supabaseClient={supabase}
                 view={authView}
-                appearance={{ 
-                    theme: ThemeSupa,
-                    variables: {
-                        default: {
-                            colors: {
-                                brand: 'oklch(0.205 0 0)',
-                                brandAccent: 'oklch(0.145 0 0)',
+            appearance={{ 
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: 'oklch(0.205 0 0)',
+                    brandAccent: 'oklch(0.145 0 0)',
                                 inputBorder: 'oklch(0.87 0 0)',
                                 inputBackground: 'transparent',
                             },
                             radii: {
                                 borderRadiusButton: '0.5rem',
                                 inputBorderRadius: '0.5rem',
-                            }
-                        }
-                    },
+                  }
+                }
+              },
                     className: {
                         container: 'w-full',
                         button: 'w-full px-4 py-2',
                         input: 'w-full px-3 py-2',
                         label: 'mb-1.5 block text-sm font-medium text-foreground',
                     }
-                }}
-                providers={[]}
+            }}
+            providers={[]}
                 showLinks={false}
-                localization={{
-                    variables: {
-                        sign_up: {
-                            email_label: '電子郵件',
-                            password_label: '密碼',
-                            button_label: '註冊',
-                            loading_button_label: '註冊中 ...',
-                        },
-                        sign_in: {
-                            email_label: '電子郵件',
-                            password_label: '密碼',
-                            button_label: '登入',
-                            loading_button_label: '登入中 ...',
-                        },
-                    },
-                }}
-                theme="light"
-            />
-
+            localization={{
+              variables: {
+                sign_up: {
+                    email_label: '電子郵件',
+                    password_label: '密碼',
+                    button_label: '註冊',
+                    loading_button_label: '註冊中 ...',
+                },
+                sign_in: {
+                    email_label: '電子郵件',
+                    password_label: '密碼',
+                    button_label: '登入',
+                    loading_button_label: '登入中 ...',
+                },
+              },
+            }}
+            theme="light"
+          />
+        
             <div className="flex flex-col gap-4 text-center text-sm">
-                {/* Custom Forgot Password Link - Only show in sign_in view */}
-                {authView === 'sign_in' && (
+            {/* Custom Forgot Password Link - Only show in sign_in view */}
+            {authView === 'sign_in' && (
                     <div className="flex justify-end px-1">
-                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                            <DialogTrigger asChild>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
                                 <button className="text-sm font-medium text-muted-foreground hover:text-primary underline underline-offset-4">
-                                    忘記密碼？
-                                </button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>重設密碼</DialogTitle>
-                                    <DialogDescription>
-                                        請輸入您的電子郵件，我們將發送重設密碼連結給您。
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <form onSubmit={handleResetPassword} className="space-y-4 mt-2">
+                            忘記密碼？
+                        </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>重設密碼</DialogTitle>
+                            <DialogDescription>
+                                請輸入您的電子郵件，我們將發送重設密碼連結給您。
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleResetPassword} className="space-y-4 mt-2">
                                     <div className="space-y-2 text-left">
-                                        <Label htmlFor="reset-email">電子郵件</Label>
-                                        <Input 
-                                            id="reset-email" 
-                                            type="email" 
-                                            placeholder="name@example.com" 
-                                            value={resetEmail}
-                                            onChange={(e) => setResetEmail(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <Button type="submit" className="w-full" disabled={isResetting || cooldown > 0}>
-                                        {isResetting ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                發送中...
-                                            </>
-                                        ) : cooldown > 0 ? (
-                                            `請稍候 ${cooldown} 秒`
-                                        ) : (
-                                            "發送重設信件"
-                                        )}
-                                    </Button>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
+                                <Label htmlFor="reset-email">電子郵件</Label>
+                                <Input 
+                                    id="reset-email" 
+                                    type="email" 
+                                    placeholder="name@example.com" 
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <Button type="submit" className="w-full" disabled={isResetting || cooldown > 0}>
+                                {isResetting ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        發送中...
+                                    </>
+                                ) : cooldown > 0 ? (
+                                    `請稍候 ${cooldown} 秒`
+                                ) : (
+                                    "發送重設信件"
+                                )}
+                            </Button>
+                        </form>
+                    </DialogContent>
+                </Dialog>
                     </div>
-                )}
+            )}
 
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -235,16 +235,16 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Custom Sign In / Sign Up Toggle */}
-                <button 
-                    onClick={() => setAuthView(authView === 'sign_in' ? 'sign_up' : 'sign_in')}
-                    className="text-sm hover:underline underline-offset-4"
-                >
-                    {authView === 'sign_in' 
+            {/* Custom Sign In / Sign Up Toggle */}
+            <button 
+                onClick={() => setAuthView(authView === 'sign_in' ? 'sign_up' : 'sign_in')}
+                className="text-sm hover:underline underline-offset-4"
+            >
+                {authView === 'sign_in' 
                         ? "還沒有帳號？註冊新帳號" 
                         : "已經有帳號？登入"
-                    }
-                </button>
+                }
+            </button>
             </div>
           </div>
         </div>

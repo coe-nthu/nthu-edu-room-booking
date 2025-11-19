@@ -41,7 +41,7 @@ const items = [
   },
   {
     title: "空間一覽",
-    url: "/dashboard/rooms",
+    url: "/dashboard/spaces",
     icon: Home,
   },
 ]

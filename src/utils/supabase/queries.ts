@@ -9,14 +9,22 @@ export type Room = {
   equipment: any
   floor: string | null
   room_type: string | null
+  image_url: string | null
+  is_active: boolean | null
 }
 
-export async function getRooms(): Promise<Room[]> {
+export async function getRooms(includeInactive = false): Promise<Room[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('rooms')
     .select('*')
     .order('name')
+  
+  if (!includeInactive) {
+    query = query.eq('is_active', true)
+  }
+  
+  const { data, error } = await query
   
   if (error) {
     console.error('Error fetching rooms:', error)
@@ -24,6 +32,22 @@ export async function getRooms(): Promise<Room[]> {
   }
   
   return data as Room[]
+}
+
+export async function getRoomById(id: string): Promise<Room | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('rooms')
+    .select('*')
+    .eq('id', id)
+    .single()
+  
+  if (error) {
+    console.error('Error fetching room:', error)
+    return null
+  }
+  
+  return data as Room
 }
 
 export type Booking = {
