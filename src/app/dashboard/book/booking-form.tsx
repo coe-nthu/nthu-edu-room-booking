@@ -63,9 +63,12 @@ const bookingFormSchema = z.object({
 
 type BookingFormProps = {
   rooms: Room[]
+  selectedRoomId?: string
+  onRoomChange?: (roomId: string) => void
+  prefillSlot?: { start: Date; end: Date } | null
 }
 
-export function BookingForm({ rooms }: BookingFormProps) {
+export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }: BookingFormProps) {
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
   
@@ -73,8 +76,31 @@ export function BookingForm({ rooms }: BookingFormProps) {
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       purpose: "",
+      roomId: selectedRoomId || "",
     },
   })
+
+  // Sync form roomId with prop change
+  useEffect(() => {
+    if (selectedRoomId) {
+        form.setValue("roomId", selectedRoomId)
+    }
+  }, [selectedRoomId, form])
+
+  // Sync form date/time with prefillSlot
+  useEffect(() => {
+    if (prefillSlot) {
+        form.setValue("date", prefillSlot.start)
+        
+        const startHour = prefillSlot.start.getHours()
+        const startTime = `${startHour.toString().padStart(2, '0')}:00`
+        form.setValue("startTime", startTime)
+
+        const endHour = prefillSlot.end.getHours()
+        const endTime = `${endHour.toString().padStart(2, '0')}:00`
+        form.setValue("endTime", endTime)
+    }
+  }, [prefillSlot, form])
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -106,9 +132,6 @@ export function BookingForm({ rooms }: BookingFormProps) {
     endDateTime.setHours(endHour, endMinute, 0, 0)
 
     // 1. Check user role for 7-day rule (Client-side pre-check)
-    // We can use the state isAdmin directly here as fallback, or recheck to be safe
-    // Rechecking to be consistent with original logic but we can optimize later
-    
     if (!isAdmin) {
       const today = new Date()
       const minDate = new Date()
@@ -184,7 +207,14 @@ export function BookingForm({ rooms }: BookingFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>選擇空間</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={(val) => {
+                    field.onChange(val)
+                    onRoomChange?.(val)
+                }} 
+                defaultValue={field.value}
+                value={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="請選擇借用空間" />
@@ -267,7 +297,7 @@ export function BookingForm({ rooms }: BookingFormProps) {
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormLabel>開始時間</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="開始" />
@@ -292,7 +322,7 @@ export function BookingForm({ rooms }: BookingFormProps) {
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormLabel>結束時間</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="結束" />

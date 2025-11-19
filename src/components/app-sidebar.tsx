@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, Search, Settings, PlusCircle, LogOut, User, LayoutDashboard } from "lucide-react"
+import { Calendar, Home, Inbox, Search, Settings, PlusCircle, LogOut, User, LayoutDashboard, BookOpen } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +23,12 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 
 const items = [
+  {
+    title: "借用規則",
+    url: "/dashboard/rules",
+    icon: BookOpen,
+    highlight: true,
+  },
   {
     title: "預約空間",
     url: "/dashboard/book",
@@ -69,7 +75,7 @@ export function AppSidebar() {
         .select('role')
         .eq('id', user.id)
         .single()
-
+      
       setIsAdmin(profile?.role === 'admin')
     }
 
@@ -101,9 +107,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={pathname === item.url}
+                    className={item.highlight ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50" : ""}
+                  >
                     <a href={item.url}>
-                      <item.icon />
+                      <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>

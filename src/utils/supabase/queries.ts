@@ -33,12 +33,14 @@ export type Booking = {
     room_code: string | null
     capacity: number | null
     floor: string | null
+    room_type: string | null
   }
   start_time: string
   end_time: string
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
   purpose: string
   created_at: string
+  user_name?: string // Optional, for admin view
 }
 
 export async function getUserBookings(): Promise<Booking[]> {
@@ -60,7 +62,8 @@ export async function getUserBookings(): Promise<Booking[]> {
         name,
         room_code,
         capacity,
-        floor
+        floor,
+        room_type
       )
     `)
     .eq('user_id', user.id)
@@ -72,4 +75,14 @@ export async function getUserBookings(): Promise<Booking[]> {
   }
 
   return data as unknown as Booking[]
+}
+
+export type TimetableEvent = {
+  id: string
+  title: string
+  start: Date
+  end: Date
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
+  resourceId?: string
+  details?: string // For admin to see extra details
 }

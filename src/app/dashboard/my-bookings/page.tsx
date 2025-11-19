@@ -49,6 +49,7 @@ export default async function MyBookingsPage() {
                 <TableHead>空間代碼</TableHead>
                 <TableHead>空間名稱</TableHead>
                 <TableHead>樓層</TableHead>
+                <TableHead>可容納人數</TableHead>
                 <TableHead>日期</TableHead>
                 <TableHead>時段</TableHead>
                 <TableHead>事由</TableHead>
@@ -60,7 +61,7 @@ export default async function MyBookingsPage() {
             <TableBody>
               {bookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground h-24">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground h-24">
                     尚無預約紀錄
                   </TableCell>
                 </TableRow>
@@ -70,13 +71,14 @@ export default async function MyBookingsPage() {
                     <TableCell className="font-medium">{booking.room.room_code}</TableCell>
                     <TableCell>
                       {booking.room.name}
-                      {booking.room.capacity && (
+                      {booking.room.room_type && (
                         <span className="text-muted-foreground text-sm ml-1">
-                          ({booking.room.capacity}人)
+                          ({booking.room.room_type})
                         </span>
                       )}
                     </TableCell>
                     <TableCell>{booking.room.floor}</TableCell>
+                    <TableCell>{booking.room.capacity ? `${booking.room.capacity}人` : '-'}</TableCell>
                     <TableCell>
                       {format(new Date(booking.start_time), "PPP", { locale: zhTW })}
                     </TableCell>

@@ -1,0 +1,71 @@
+"use server"
+
+import { createClient } from '@/utils/supabase/server'
+import { TimetableEvent } from '@/utils/supabase/queries'
+
+export async function getRoomBookings(roomId: string): Promise<TimetableEvent[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    isAdmin = profile?.role === 'admin'
+  }
+
+  // Query bookings for the specific room
+  // Filter out cancelled bookings
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      id,
+      start_time,
+      end_time,
+      status,
+      purpose,
+      profiles:user_id (
+        full_name,
+        username
+      )
+    `)
+    .eq('room_id', roomId)
+    .in('status', ['pending', 'approved']) 
+    .gte('end_time', new Date().toISOString())
+    
+  if (error) {
+    console.error('Error fetching room bookings:', error)
+    return []
+  }
+
+  return data.map((booking: any) => {
+    let title = ''
+    let details = ''
+
+    if (isAdmin) {
+      const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
+      title = `${userName} - ${booking.purpose}`
+      details = `借用人: ${userName}\n事由: ${booking.purpose}\n狀態: ${booking.status === 'approved' ? '已核准' : '待審核'}`
+    } else {
+      // For regular users
+      if (booking.status === 'approved') {
+        title = '已預約'
+      } else if (booking.status === 'pending') {
+        title = '審核中'
+      }
+    }
+
+    return {
+      id: booking.id,
+      title,
+      start: new Date(booking.start_time),
+      end: new Date(booking.end_time),
+      status: booking.status,
+      details: isAdmin ? details : undefined
+    }
+  })
+}
+
