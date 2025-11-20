@@ -1,7 +1,5 @@
 "use client"
 
-import { Auth } from '@supabase/auth-ui-react'
-import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -18,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -35,10 +33,19 @@ export default function LoginPage() {
   const [cooldown, setCooldown] = useState(0)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
+  // Sign In State
+  const [signInEmail, setSignInEmail] = useState("")
+  const [signInPassword, setSignInPassword] = useState("")
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const [showSignInPassword, setShowSignInPassword] = useState(false)
+
   // Custom Sign Up State
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isSigningUp, setIsSigningUp] = useState(false)
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -91,14 +98,48 @@ export default function LoginPage() {
     }
   }
 
-  // 動態計算重定向 URL（用於註冊確認和重設密碼）
+  // 動態計算重定向 URL
   const getRedirectUrl = () => {
     if (typeof window === 'undefined') return ''
     return `${origin}/auth/callback?next=/dashboard`
   }
 
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSigningIn(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: signInEmail,
+        password: signInPassword,
+      })
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+            toast.error("帳號或密碼錯誤，請重新輸入")
+        } else {
+            toast.error(error.message || "登入失敗，請檢查帳號密碼")
+        }
+        return
+      }
+      // Redirect handled by onAuthStateChange
+      toast.success("登入成功")
+    } catch (error: any) {
+      toast.error("發生未預期的錯誤")
+      console.error(error)
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
   const handleSignUp = async (e: React.FormEvent) => {
       e.preventDefault()
+      
+      if (signUpPassword !== confirmPassword) {
+          toast.error("兩次輸入的密碼不一致")
+          return
+      }
+
       setIsSigningUp(true)
 
       try {
@@ -111,7 +152,6 @@ export default function LoginPage() {
           })
 
           if (error) {
-            // Check for "User already registered" error
             if (error.message.includes("already registered") || error.status === 422) {
                 toast.error("此 Email 已經註冊過，請直接登入")
             } else {
@@ -120,15 +160,17 @@ export default function LoginPage() {
             return
           }
 
-          // Supabase security feature: returns success but empty identities for existing user
           if (data?.user && data.user.identities && data.user.identities.length === 0) {
             toast.error("此 Email 已經註冊過，請直接登入")
             return
           }
 
-          toast.success("註冊成功！請查看您的信箱以進行驗證")
+          toast.success("註冊成功送出！請等待管理員審核")
           setSignUpEmail("")
           setSignUpPassword("")
+          setConfirmPassword("")
+          // Optionally switch view
+          // setAuthView('sign_in')
           
       } catch (error: any) {
           toast.error("發生未預期的錯誤")
@@ -183,47 +225,49 @@ export default function LoginPage() {
 
           <div className="grid gap-6">
             {authView === 'sign_in' ? (
-                <Auth
-                    supabaseClient={supabase}
-                    view="sign_in"
-                    redirectTo={getRedirectUrl()}
-                    appearance={{ 
-                    theme: ThemeSupa,
-                    variables: {
-                        default: {
-                        colors: {
-                            brand: 'oklch(0.205 0 0)',
-                            brandAccent: 'oklch(0.145 0 0)',
-                                        inputBorder: 'oklch(0.87 0 0)',
-                                        inputBackground: 'transparent',
-                                    },
-                                    radii: {
-                                        borderRadiusButton: '0.5rem',
-                                        inputBorderRadius: '0.5rem',
-                        }
-                        }
-                    },
-                            className: {
-                                container: 'w-full',
-                                button: 'w-full px-4 py-2',
-                                input: 'w-full px-3 py-2',
-                                label: 'mb-1.5 block text-sm font-medium text-foreground',
-                            }
-                    }}
-                    providers={[]}
-                    showLinks={false}
-                    localization={{
-                    variables: {
-                        sign_in: {
-                            email_label: '電子郵件',
-                            password_label: '密碼',
-                            button_label: '登入',
-                            loading_button_label: '登入中 ...',
-                        },
-                    },
-                    }}
-                    theme="light"
-                />
+                <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="signin-email">電子郵件</Label>
+                        <Input 
+                            id="signin-email"
+                            type="email"
+                            placeholder="name@example.com"
+                            value={signInEmail}
+                            onChange={(e) => setSignInEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signin-password">密碼</Label>
+                        <div className="relative">
+                            <Input 
+                                id="signin-password"
+                                type={showSignInPassword ? "text" : "password"}
+                                placeholder="您的密碼"
+                                value={signInPassword}
+                                onChange={(e) => setSignInPassword(e.target.value)}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowSignInPassword(!showSignInPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isSigningIn}>
+                        {isSigningIn ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                登入中...
+                            </>
+                        ) : (
+                            "登入"
+                        )}
+                    </Button>
+                </form>
             ) : (
                 <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-2">
@@ -239,15 +283,45 @@ export default function LoginPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="signup-password">密碼</Label>
-                        <Input 
-                            id="signup-password"
-                            type="password"
-                            placeholder="您的密碼"
-                            value={signUpPassword}
-                            onChange={(e) => setSignUpPassword(e.target.value)}
-                            required
-                            minLength={6}
-                        />
+                        <div className="relative">
+                            <Input 
+                                id="signup-password"
+                                type={showSignUpPassword ? "text" : "password"}
+                                placeholder="您的密碼"
+                                value={signUpPassword}
+                                onChange={(e) => setSignUpPassword(e.target.value)}
+                                required
+                                minLength={6}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="confirm-password">確認密碼</Label>
+                        <div className="relative">
+                            <Input 
+                                id="confirm-password"
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="請再次輸入密碼"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                minLength={6}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
                     </div>
                     <Button type="submit" className="w-full" disabled={isSigningUp}>
                         {isSigningUp ? (
