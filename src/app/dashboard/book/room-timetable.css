@@ -1,0 +1,290 @@
+/* FullCalendar Custom Styles */
+.fc-wrapper .fc {
+  font-family: inherit;
+}
+
+/* Toolbar styling */
+.fc-wrapper .fc-toolbar {
+  margin-bottom: 1.5rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 1rem !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.fc-wrapper .fc-toolbar-chunk {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.fc-wrapper .fc-toolbar-title {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: inherit;
+  white-space: nowrap !important; /* Prevent title wrapping */
+  margin: 0 !important;
+}
+
+/* Button styling */
+.fc-wrapper .fc-button {
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.375rem 0.75rem !important;
+  border-radius: 0.375rem !important;
+  transition: all 0.2s !important;
+  background-color: transparent !important;
+  border: 1px solid #e4e4e7 !important;
+  color: #18181b !important;
+  line-height: 1.25rem !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.fc-wrapper .fc-button:hover {
+  background-color: #f4f4f5 !important;
+  border-color: #e4e4e7 !important;
+}
+
+.fc-wrapper .fc-button:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+}
+
+.fc-wrapper .fc-button-primary:not(:disabled).fc-button-active,
+.fc-wrapper .fc-button-primary:not(:disabled):active {
+  background-color: #18181b !important;
+  border-color: #18181b !important;
+  color: #fafafa !important;
+}
+
+/* Button Group specific adjustments */
+.fc-wrapper .fc-button-group {
+  gap: 0 !important; /* Remove gap between grouped buttons */
+  display: inline-flex !important;
+  isolation: isolate;
+}
+
+.fc-wrapper .fc-button-group > .fc-button {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  position: relative;
+}
+
+.fc-wrapper .fc-button-group > .fc-button:first-child {
+  border-top-left-radius: 0.375rem !important;
+  border-bottom-left-radius: 0.375rem !important;
+}
+
+.fc-wrapper .fc-button-group > .fc-button:last-child {
+  border-top-right-radius: 0.375rem !important;
+  border-bottom-right-radius: 0.375rem !important;
+}
+
+.fc-wrapper .fc-button-group > .fc-button:not(:last-child) {
+  border-right-width: 0 !important; /* Prevent double borders */
+}
+
+.fc-wrapper .fc-button-group > .fc-button:focus {
+  z-index: 2;
+}
+
+/* Today button separation if not in group */
+.fc-wrapper .fc-today-button {
+  margin-left: 0.5rem !important;
+}
+
+/* Table borders */
+.fc-wrapper .fc-theme-standard td,
+.fc-wrapper .fc-theme-standard th {
+  border-color: #e4e4e7;
+}
+
+.fc-wrapper .fc-theme-standard .fc-scrollgrid {
+  border-color: #e4e4e7;
+}
+
+/* Column headers */
+.fc-wrapper .fc-col-header-cell {
+  background-color: #f4f4f5;
+  color: #18181b;
+  padding: 8px 0;
+  font-weight: 500;
+}
+
+/* Make header date and weekday inline */
+.fc-wrapper .fc-col-header-cell-cushion {
+  color: #18181b;
+  padding: 8px 4px;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none !important;
+}
+
+/* Time labels */
+.fc-wrapper .fc-timegrid-slot-label {
+  color: #71717a;
+  font-size: 0.75rem;
+}
+
+.fc-wrapper .fc-timegrid-slot-label-cushion {
+  color: #71717a;
+}
+
+/* Today highlight */
+.fc-wrapper .fc-day-today {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.fc-wrapper .fc-daygrid-day.fc-day-today {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* Day numbers */
+.fc-wrapper .fc-daygrid-day-number {
+  color: #18181b;
+  padding: 4px 8px;
+  text-decoration: none !important;
+}
+
+/* Events */
+.fc-wrapper .fc-event {
+  border-radius: 4px !important;
+  font-size: 0.75rem !important;
+  padding: 2px 4px;
+  cursor: default;
+  border: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.fc-wrapper .fc-event-title {
+  font-weight: 500;
+}
+
+/* Selection highlight */
+.fc-wrapper .fc-highlight {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Now indicator */
+.fc-wrapper .fc-timegrid-now-indicator-line {
+  border-color: #ef4444 !important;
+  border-width: 2px !important;
+  opacity: 0.8;
+}
+
+.fc-wrapper .fc-timegrid-now-indicator-arrow {
+  border-color: #ef4444 !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  opacity: 0.8;
+}
+
+/* Slot lane styling */
+.fc-wrapper .fc-timegrid-slot {
+  height: 2rem;
+}
+
+/* View container */
+.fc-wrapper .fc-view-harness {
+  background-color: white;
+}
+
+/* Scrollbar styling */
+.fc-wrapper .fc-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fc-wrapper .fc-scroller::-webkit-scrollbar-track {
+  background: #f4f4f5;
+  border-radius: 4px;
+}
+
+.fc-wrapper .fc-scroller::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+
+.fc-wrapper .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Dark mode support */
+.dark .fc-wrapper .fc-button {
+  background-color: transparent !important;
+  border-color: #3f3f46 !important;
+  color: #fafafa !important;
+}
+
+.dark .fc-wrapper .fc-button:hover {
+  background-color: #27272a !important;
+  border-color: #3f3f46 !important;
+}
+
+.dark .fc-wrapper .fc-button-primary:not(:disabled).fc-button-active,
+.dark .fc-wrapper .fc-button-primary:not(:disabled):active {
+  background-color: #fafafa !important;
+  border-color: #fafafa !important;
+  color: #18181b !important;
+}
+
+.dark .fc-wrapper .fc-theme-standard td,
+.dark .fc-wrapper .fc-theme-standard th {
+  border-color: #3f3f46;
+}
+
+.dark .fc-wrapper .fc-theme-standard .fc-scrollgrid {
+  border-color: #3f3f46;
+}
+
+.dark .fc-wrapper .fc-col-header-cell {
+  background-color: #27272a;
+  color: #fafafa;
+}
+
+.dark .fc-wrapper .fc-col-header-cell-cushion {
+  color: #fafafa;
+}
+
+.dark .fc-wrapper .fc-timegrid-slot-label,
+.dark .fc-wrapper .fc-timegrid-slot-label-cushion {
+  color: #a1a1aa;
+}
+
+.dark .fc-wrapper .fc-day-today {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-wrapper .fc-daygrid-day.fc-day-today {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-wrapper .fc-daygrid-day-number {
+  color: #fafafa;
+}
+
+.dark .fc-wrapper .fc-toolbar-title {
+  color: #fafafa !important;
+}
+
+.dark .fc-wrapper .fc-view-harness {
+  background-color: #18181b;
+}
+
+.dark .fc-wrapper .fc-scroller::-webkit-scrollbar-track {
+  background: #27272a;
+}
+
+.dark .fc-wrapper .fc-scroller::-webkit-scrollbar-thumb {
+  background: #52525b;
+}
+
+.dark .fc-wrapper .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}

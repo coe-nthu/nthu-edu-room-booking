@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, AlertTriangle } from "lucide-react"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 
@@ -37,6 +37,15 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import type { Room } from "@/utils/supabase/queries"
 import { useEffect, useState } from "react"
+import type { SemesterSetting } from "@/utils/semester"
+import { 
+  isDateWithin4Months, 
+  isDateInLockedPeriod, 
+  getMaxBookableDate,
+  getCurrentSemester,
+  getNextSemester,
+  isSameDay
+} from "@/utils/semester"
 
 const bookingFormSchema = z.object({
   roomId: z.string({
@@ -66,11 +75,13 @@ type BookingFormProps = {
   selectedRoomId?: string
   onRoomChange?: (roomId: string) => void
   prefillSlot?: { start: Date; end: Date } | null
+  semesterSettings?: SemesterSetting[]
 }
 
-export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }: BookingFormProps) {
+export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, semesterSettings = [] }: BookingFormProps) {
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
+  const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
   
   const form = useForm<z.infer<typeof bookingFormSchema>>({
     resolver: zodResolver(bookingFormSchema),
@@ -93,17 +104,19 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
         form.setValue("date", prefillSlot.start)
         
         const startHour = prefillSlot.start.getHours()
-        const startTime = `${startHour.toString().padStart(2, '0')}:00`
+        const startMinute = prefillSlot.start.getMinutes()
+        const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`
         form.setValue("startTime", startTime)
 
         const endHour = prefillSlot.end.getHours()
-        const endTime = `${endHour.toString().padStart(2, '0')}:00`
+        const endMinute = prefillSlot.end.getMinutes()
+        const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`
         form.setValue("endTime", endTime)
     }
   }, [prefillSlot, form])
 
   useEffect(() => {
-    const checkUserRole = async () => {
+    const checkUserRoleAndFetchSemesters = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -116,9 +129,21 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
           setIsAdmin(true)
         }
       }
+      
+      // Fetch semester settings if not provided as props
+      if (semesterSettings.length === 0) {
+        const { data: semesterData } = await supabase
+          .from('semester_settings')
+          .select('*')
+          .order('start_date', { ascending: true })
+        
+        if (semesterData) {
+          setSemesters(semesterData)
+        }
+      }
     }
-    checkUserRole()
-  }, [])
+    checkUserRoleAndFetchSemesters()
+  }, [semesterSettings.length])
 
   async function onSubmit(values: z.infer<typeof bookingFormSchema>) {
     const supabase = createClient()
@@ -131,6 +156,12 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
     const [endHour, endMinute] = values.endTime.split(':').map(Number)
     endDateTime.setHours(endHour, endMinute, 0, 0)
 
+    // Check that start and end are on the same day (no multi-day bookings)
+    if (!isSameDay(startDateTime, endDateTime)) {
+      toast.error("每次預約僅能借用單日，不能跨日連續借用")
+      return
+    }
+
     // 1. Check user role for 7-day rule (Client-side pre-check)
     if (!isAdmin) {
       const today = new Date()
@@ -140,6 +171,18 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
       
       if (startDateTime < minDate) {
         toast.error("一般使用者需於 7 天前申請")
+        return
+      }
+      
+      // Check 4-month limit for non-admins
+      if (!isDateWithin4Months(startDateTime)) {
+        toast.error("一般使用者僅能借用未來 4 個月內的日期")
+        return
+      }
+      
+      // Check semester lock for non-admins
+      if (isDateInLockedPeriod(startDateTime, semesters, false)) {
+        toast.error("下學期課表尚未確認，暫不開放預約")
         return
       }
     }
@@ -193,14 +236,46 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
     }
   }
 
-  const timeSlots = Array.from({ length: 15 }, (_, i) => {
-    const hour = i + 8
-    return `${hour.toString().padStart(2, '0')}:00`
+  // Generate 30-minute interval time slots from 08:00 to 22:00
+  const timeSlots = Array.from({ length: 29 }, (_, i) => {
+    const totalMinutes = 8 * 60 + i * 30 // Start from 08:00
+    const hour = Math.floor(totalMinutes / 60)
+    const minute = totalMinutes % 60
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
   })
+
+  // Get current and next semester for display
+  const currentSemester = getCurrentSemester(semesters)
+  const nextSemester = getNextSemester(semesters, currentSemester)
+  const maxBookableDate = getMaxBookableDate()
+  const isNextSemesterLocked = nextSemester && !nextSemester.is_next_semester_open
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Warning banner for locked semester */}
+        {!isAdmin && isNextSemesterLocked && (
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-900 dark:text-amber-200">
+                  下學期課表尚未確認
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
+                  {nextSemester.semester_name} ({format(new Date(nextSemester.start_date), 'MM/dd')} - {format(new Date(nextSemester.end_date), 'MM/dd')}) 暫不開放預約，請等待管理員開放。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Info banner for 4-month limit */}
+        {!isAdmin && (
+          <div className="text-sm text-muted-foreground">
+            一般使用者可預約至 {format(maxBookableDate, 'yyyy/MM/dd', { locale: zhTW })}（4 個月內）
+          </div>
+        )}
         <FormField
           control={form.control}
           name="roomId"
@@ -273,11 +348,18 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot }
                       // Always disable past dates
                       if (date < today) return true
 
-                      // If user is NOT admin, disable dates within the next 7 days
+                      // If user is NOT admin, apply additional restrictions
                       if (!isAdmin) {
+                         // 7-day rule
                          const minDate = new Date(today)
                          minDate.setDate(today.getDate() + 7)
-                         return date < minDate
+                         if (date < minDate) return true
+                         
+                         // 4-month limit
+                         if (!isDateWithin4Months(date)) return true
+                         
+                         // Semester lock
+                         if (isDateInLockedPeriod(date, semesters, false)) return true
                       }
                       
                       return false

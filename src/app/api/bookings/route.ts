@@ -1,6 +1,12 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { 
+  isSameDay, 
+  isDateWithin4Months, 
+  isDateInLockedPeriod,
+  type SemesterSetting 
+} from '@/utils/semester'
 
 const createBookingSchema = z.object({
   roomId: z.string().uuid(),
@@ -34,6 +40,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '結束時間必須晚於開始時間' }, { status: 400 })
     }
 
+    // Check that booking is for a single day only (no multi-day bookings)
+    if (!isSameDay(startTime, endTime)) {
+      return NextResponse.json({ error: '每次預約僅能借用單日，不能跨日連續借用' }, { status: 400 })
+    }
+
     // Fetch user profile for role check
     const { data: profile } = await supabase
       .from('profiles')
@@ -42,6 +53,14 @@ export async function POST(request: Request) {
       .single()
     
     const isAdmin = profile?.role === 'admin'
+
+    // Fetch semester settings for date restrictions
+    const { data: semesterData } = await supabase
+      .from('semester_settings')
+      .select('*')
+      .order('start_date', { ascending: true })
+    
+    const semesters: SemesterSetting[] = semesterData || []
 
     // 1. Check 7-day rule for non-admins
     if (!isAdmin) {
@@ -53,10 +72,20 @@ export async function POST(request: Request) {
       if (startTime < minDate) {
         return NextResponse.json({ error: '一般使用者需於 7 天前申請' }, { status: 400 })
       }
+      
+      // 2. Check 4-month limit for non-admins
+      if (!isDateWithin4Months(startTime)) {
+        return NextResponse.json({ error: '一般使用者僅能借用未來 4 個月內的日期' }, { status: 400 })
+      }
+      
+      // 3. Check semester lock for non-admins
+      if (isDateInLockedPeriod(startTime, semesters, false)) {
+        return NextResponse.json({ error: '下學期課表尚未確認，暫不開放預約' }, { status: 400 })
+      }
     }
 
-    // 2. Check unavailable periods (including lunch lock if configured)
-    // New logic: check `unavailable_periods` JSONB column
+    // 4. Check unavailable periods (including lunch lock if configured)
+    // Check `unavailable_periods` JSONB column
     const { data: room } = await supabase
       .from('rooms')
       .select('unavailable_periods')
@@ -91,7 +120,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Check for overlapping bookings
+    // 5. Check for overlapping bookings
     const { data: overlaps, error: overlapError } = await supabase
       .from('bookings')
       .select('id')

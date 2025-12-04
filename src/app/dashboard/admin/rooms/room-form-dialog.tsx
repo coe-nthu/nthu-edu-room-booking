@@ -14,6 +14,13 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { createRoom, updateRoom, uploadRoomImage } from "@/app/actions/admin-rooms"
 import { toast } from "sonner"
 import { Loader2, Upload, X } from "lucide-react"
@@ -43,6 +50,8 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  const floorOptions = ["B1F", "1F", "2F", "3F", "4F", "5F", "6F", "7F", "8F"]
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -182,7 +191,18 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
             <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="floor">樓層</Label>
-                    <Input id="floor" value={floor} onChange={(e) => setFloor(e.target.value)} />
+                    <Select value={floor} onValueChange={setFloor}>
+                        <SelectTrigger id="floor">
+                            <SelectValue placeholder="選擇樓層" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {floorOptions.map((f) => (
+                                <SelectItem key={f} value={f}>
+                                    {f}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="capacity">容納人數</Label>

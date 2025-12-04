@@ -1,26 +1,16 @@
 "use client"
 
-import { Calendar, dateFnsLocalizer, View, Views } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
-import { zhTW } from 'date-fns/locale'
-import 'react-big-calendar/lib/css/react-big-calendar.css'
-import { useEffect, useState, useCallback } from 'react'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import zhTwLocale from '@fullcalendar/core/locales/zh-tw'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { TimetableEvent } from '@/utils/supabase/queries'
 import { getRoomBookings } from '@/app/actions/bookings'
-import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-const locales = {
-  'zh-TW': zhTW,
-}
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-})
+import type { EventInput, DateSelectArg } from '@fullcalendar/core'
+import './room-timetable.css'
 
 type RoomTimetableProps = {
   roomId: string
@@ -30,8 +20,7 @@ type RoomTimetableProps = {
 export function RoomTimetable({ roomId, onSelectSlot }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
-  const [view, setView] = useState<View>(Views.WEEK)
-  const [date, setDate] = useState(new Date())
+  const calendarRef = useRef<FullCalendar>(null)
 
   const fetchEvents = useCallback(async () => {
     if (!roomId) return
@@ -50,69 +39,107 @@ export function RoomTimetable({ roomId, onSelectSlot }: RoomTimetableProps) {
     fetchEvents()
   }, [fetchEvents])
 
-  const eventStyleGetter = (event: TimetableEvent) => {
-    let backgroundColor = '#3174ad'
+  // Transform TimetableEvent to FullCalendar EventInput format
+  const calendarEvents: EventInput[] = events.map((event) => {
+    let backgroundColor = '#3b82f6' // Blue-500
+    let borderColor = '#2563eb' // Blue-600
+    
     if (event.status === 'approved') {
       backgroundColor = '#ef4444' // Red-500
+      borderColor = '#dc2626' // Red-600
     } else if (event.status === 'pending') {
       backgroundColor = '#f97316' // Orange-500
+      borderColor = '#ea580c' // Orange-600
     }
 
     return {
-      style: {
-        backgroundColor,
-        borderRadius: '4px',
-        opacity: 0.8,
-        color: 'white',
-        border: '0px',
-        display: 'block',
+      id: event.id,
+      title: event.title,
+      start: event.start,
+      end: event.end,
+      backgroundColor,
+      borderColor,
+      textColor: '#ffffff',
+      extendedProps: {
+        status: event.status,
+        details: event.details,
       },
     }
+  })
+
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    // Only allow selection in future
+    if (selectInfo.start >= new Date()) {
+      onSelectSlot?.({ start: selectInfo.start, end: selectInfo.end })
+    }
+    // Unselect the selection
+    const calendarApi = selectInfo.view.calendar
+    calendarApi.unselect()
   }
 
   return (
-    <div className="h-[600px] relative bg-background rounded-lg border p-4 shadow-sm">
+    <div className="h-[600px] relative bg-background rounded-lg border p-4 shadow-sm fc-wrapper">
       {loading && (
-        <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+        <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10 rounded-lg">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
       
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: '100%' }}
-        views={['month', 'week', 'day']}
-        view={view}
-        date={date}
-        onNavigate={setDate}
-        onView={setView}
-        eventPropGetter={eventStyleGetter}
-        selectable
-        onSelectSlot={(slotInfo) => {
-            // Only allow selection in future
-            if (slotInfo.start >= new Date()) {
-                onSelectSlot?.(slotInfo)
-            }
+      <FullCalendar
+        ref={calendarRef}
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        initialView="timeGridWeek"
+        locale={zhTwLocale}
+        headerToolbar={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
-        culture="zh-TW"
-        messages={{
-            next: "下一個",
-            previous: "上一個",
-            today: "今天",
-            month: "月",
-            week: "週",
-            day: "日",
-            agenda: "議程",
-            date: "日期",
-            time: "時間",
-            event: "事件",
-            noEventsInRange: "此時段無預約",
+        views={{
+          timeGridWeek: {
+            type: 'timeGrid',
+            duration: { days: 7 },
+            buttonText: '週',
+          }
         }}
-        min={new Date(0, 0, 0, 8, 0, 0)} // Start at 8:00 AM
-        max={new Date(0, 0, 0, 22, 0, 0)} // End at 10:00 PM
+        buttonText={{
+          today: '今天',
+          month: '月',
+          week: '週',
+          day: '日',
+        }}
+        slotDuration="00:30:00"
+        slotMinTime="08:00:00"
+        slotMaxTime="22:00:00"
+        slotLabelInterval="01:00:00"
+        slotLabelFormat={{
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }}
+        eventTimeFormat={{
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }}
+        dayHeaderFormat={{ 
+          month: 'numeric', 
+          day: 'numeric', 
+          weekday: 'narrow' 
+        }}
+        allDaySlot={false}
+        nowIndicator={true}
+        selectable={true}
+        selectMirror={true}
+        select={handleDateSelect}
+        events={calendarEvents}
+        height="100%"
+        dayMaxEvents={true}
+        weekends={true}
+        firstDay={new Date().getDay()} // Set first day to today dynamically
+        expandRows={true}
+        stickyHeaderDates={true}
+        eventDisplay="block"
       />
     </div>
   )

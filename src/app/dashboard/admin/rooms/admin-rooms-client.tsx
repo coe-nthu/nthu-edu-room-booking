@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Room } from "@/utils/supabase/queries"
 import {
   Table,
@@ -27,7 +27,8 @@ import { toggleRoomStatus } from "@/app/actions/admin-rooms"
 import { RoomFormDialog } from "./room-form-dialog"
 import { toast } from "sonner"
 import Image from "next/image"
-import { PlusCircle, Pencil } from "lucide-react"
+import { PlusCircle, Pencil, Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type AdminRoomsClientProps = {
   initialRooms: Room[]
@@ -37,6 +38,12 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
   const [rooms, setRooms] = useState(initialRooms)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [targetRoom, setTargetRoom] = useState<{ id: string, name: string, isActive: boolean } | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleToggleStatus = (room: Room) => {
     if (room.is_active) {
@@ -61,6 +68,47 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
       setIsConfirmOpen(false)
       setTargetRoom(null)
     }
+  }
+
+  // 在 mounted 之前顯示 loading 狀態
+  if (!mounted) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">圖片</TableHead>
+                <TableHead>名稱</TableHead>
+                <TableHead>代號</TableHead>
+                <TableHead>類型</TableHead>
+                <TableHead>樓層</TableHead>
+                <TableHead>人數</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[1, 2, 3].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="w-16 h-10" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    )
   }
 
   return (
