@@ -11,13 +11,16 @@ import { getRoomBookings } from '@/app/actions/bookings'
 import { Loader2 } from 'lucide-react'
 import type { EventInput, DateSelectArg } from '@fullcalendar/core'
 import './room-timetable.css'
+import { toast } from "sonner"
+import { isSameDay } from "date-fns"
 
 type RoomTimetableProps = {
   roomId: string
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void
+  selectedSlot?: { start: Date; end: Date } | null
 }
 
-export function RoomTimetable({ roomId, onSelectSlot }: RoomTimetableProps) {
+export function RoomTimetable({ roomId, onSelectSlot, selectedSlot }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
@@ -67,12 +70,48 @@ export function RoomTimetable({ roomId, onSelectSlot }: RoomTimetableProps) {
     }
   })
 
+  // Add selected slot event if exists
+  if (selectedSlot) {
+    calendarEvents.push({
+      id: 'selected-slot',
+      title: '已選取',
+      start: selectedSlot.start,
+      end: selectedSlot.end,
+      backgroundColor: '#10b981', // Emerald-500
+      borderColor: '#059669', // Emerald-600
+      textColor: 'white',
+      display: 'block',
+      classNames: ['selected-slot-event'],
+    })
+  }
+
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    // Only allow selection in future
-    if (selectInfo.start >= new Date()) {
-      onSelectSlot?.({ start: selectInfo.start, end: selectInfo.end })
+    const now = new Date()
+    const start = selectInfo.start
+    const end = selectInfo.end
+
+    // Check if past time
+    if (start < now) {
+      toast.error("無法選擇過去的時間")
+      selectInfo.view.calendar.unselect()
+      return
     }
-    // Unselect the selection
+
+    // Check if cross day
+    // Subtract 1ms from end to handle midnight correctly (e.g. 2024-01-01 14:00 to 2024-01-02 00:00 should be valid)
+    const adjustedEnd = new Date(end.getTime() - 1)
+    if (!isSameDay(start, adjustedEnd)) {
+       toast.error("無法跨日預約")
+       selectInfo.view.calendar.unselect()
+       return
+    }
+
+    // Only allow selection in future (double check)
+    if (start >= now) {
+      onSelectSlot?.({ start, end })
+    }
+    
+    // Unselect the selection highlight as we will show the 'selected-slot' event instead
     const calendarApi = selectInfo.view.calendar
     calendarApi.unselect()
   }

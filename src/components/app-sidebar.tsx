@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, Search, Settings, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog } from "lucide-react"
+import { Calendar, Home, Inbox, Search, Settings, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -45,6 +45,11 @@ const items = [
     url: "/dashboard/spaces",
     icon: Home,
   },
+  {
+    title: "問題回報",
+    url: "/dashboard/report",
+    icon: AlertCircle,
+  },
 ]
 
 const adminItems = [
@@ -57,6 +62,11 @@ const adminItems = [
     title: "空間管理",
     url: "/dashboard/admin/rooms",
     icon: LayoutDashboard,
+  },
+  {
+    title: "回報管理",
+    url: "/dashboard/admin/reports",
+    icon: ClipboardList,
   },
   {
     title: "人員管理",

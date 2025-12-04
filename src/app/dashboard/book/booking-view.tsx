@@ -79,6 +79,7 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
                 <RoomTimetable 
                     roomId={selectedRoomId} 
                     onSelectSlot={setSelectedSlot}
+                    selectedSlot={selectedSlot}
                 />
             </CardContent>
         </Card>
