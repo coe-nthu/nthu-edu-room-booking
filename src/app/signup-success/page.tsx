@@ -1,23 +1,16 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Mail, CheckCircle2, Clock, ArrowRight } from "lucide-react"
 import Link from 'next/link'
 
-export default function SignupSuccessPage() {
+function SignupSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return null
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -173,6 +166,21 @@ export default function SignupSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 dark:border-slate-100 mx-auto"></div>
+          <p className="mt-4 text-slate-600 dark:text-slate-400">載入中...</p>
+        </div>
+      </div>
+    }>
+      <SignupSuccessContent />
+    </Suspense>
   )
 }
 
