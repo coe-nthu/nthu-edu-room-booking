@@ -60,27 +60,6 @@ export default function ApprovalPendingPage() {
           </p>
         </div>
 
-        {/* Debug Info Section */}
-        {debugInfo && (
-            <div className="mt-4 p-4 bg-slate-100 rounded text-left text-xs font-mono overflow-auto max-h-40 border">
-                <p className="font-bold text-slate-700 mb-1">Debug Info:</p>
-                <p>Email: {debugInfo.email}</p>
-                <p>Role: <span className={debugInfo.role === 'admin' ? "text-green-600 font-bold" : "text-red-600"}>{String(debugInfo.role)}</span></p>
-                <p>Approved: <span className={debugInfo.is_approved ? "text-green-600 font-bold" : "text-red-600"}>{String(debugInfo.is_approved)}</span></p>
-                {debugInfo.error && <p className="text-red-500">Error: {debugInfo.error}</p>}
-                
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-2 h-6 text-xs w-full"
-                    onClick={() => window.location.reload()}
-                >
-                    <RefreshCw className="mr-1 h-3 w-3" />
-                    重整頁面
-                </Button>
-            </div>
-        )}
-
         <div className="space-y-4 pt-4">
           <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
             <p>若有急需，請聯繫系辦公室或系統管理員。</p>

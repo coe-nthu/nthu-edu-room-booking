@@ -15,8 +15,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
+import { checkUserExists } from "@/app/actions/auth"
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -43,6 +45,10 @@ export default function LoginPage() {
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [signUpFullName, setSignUpFullName] = useState("")
+  const [signUpPhone, setSignUpPhone] = useState("")
+  const [signUpUserType, setSignUpUserType] = useState<"teacher" | "staff" | "assistant" | "student" | "">("")
+  const [signUpSupervisor, setSignUpSupervisor] = useState("")
   const [isSigningUp, setIsSigningUp] = useState(false)
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -115,17 +121,37 @@ export default function LoginPage() {
       })
 
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-            toast.error("帳號或密碼錯誤，請重新輸入")
+        // 檢查錯誤類型並提供更詳細的錯誤訊息
+        const errorMessage = error.message.toLowerCase()
+        
+        if (errorMessage.includes("invalid login credentials") || 
+            errorMessage.includes("invalid_credentials")) {
+          // 嘗試檢查帳號是否存在
+          const userExists = await checkUserExists(signInEmail)
+          
+          if (!userExists) {
+            toast.error("此帳號不存在，請確認電子郵件地址是否正確")
+          } else {
+            toast.error("密碼錯誤，請重新輸入")
+          }
+        } else if (errorMessage.includes("email not confirmed") || 
+                   errorMessage.includes("email_not_confirmed")) {
+          toast.error("您的電子郵件尚未驗證，請檢查您的信箱並點擊驗證連結")
+        } else if (errorMessage.includes("too many requests") || 
+                   errorMessage.includes("rate limit")) {
+          toast.error("登入嘗試次數過多，請稍後再試")
+        } else if (errorMessage.includes("user not found")) {
+          toast.error("此帳號不存在，請確認電子郵件地址是否正確")
         } else {
-            toast.error(error.message || "登入失敗，請檢查帳號密碼")
+          // 其他錯誤，顯示原始錯誤訊息或預設訊息
+          toast.error(error.message || "登入失敗，請稍後再試")
         }
         return
       }
       // Redirect handled by onAuthStateChange
       toast.success("登入成功")
     } catch (error: any) {
-      toast.error("發生未預期的錯誤")
+      toast.error("發生未預期的錯誤，請稍後再試")
       console.error(error)
     } finally {
       setIsSigningIn(false)
@@ -134,6 +160,28 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
       e.preventDefault()
+      
+      // 驗證必填欄位
+      if (!signUpFullName.trim()) {
+          toast.error("請輸入姓名")
+          return
+      }
+      
+      if (!signUpPhone.trim()) {
+          toast.error("請輸入聯絡電話")
+          return
+      }
+      
+      if (!signUpUserType) {
+          toast.error("請選擇身份別")
+          return
+      }
+      
+      // 如果是學生，必須填寫上司老師
+      if (signUpUserType === 'student' && !signUpSupervisor.trim()) {
+          toast.error("學生身份需填寫上司老師")
+          return
+      }
       
       if (signUpPassword !== confirmPassword) {
           toast.error("兩次輸入的密碼不一致")
@@ -148,6 +196,12 @@ export default function LoginPage() {
               password: signUpPassword,
               options: {
                   emailRedirectTo: getRedirectUrl(),
+                  data: {
+                      full_name: signUpFullName,
+                      phone: signUpPhone,
+                      user_type: signUpUserType,
+                      supervisor_name: signUpUserType === 'student' ? signUpSupervisor : null,
+                  }
               }
           })
 
@@ -165,12 +219,8 @@ export default function LoginPage() {
             return
           }
 
-          toast.success("註冊成功送出！請等待管理員審核")
-          setSignUpEmail("")
-          setSignUpPassword("")
-          setConfirmPassword("")
-          // Optionally switch view
-          // setAuthView('sign_in')
+          // 跳轉到註冊成功頁面
+          router.push(`/signup-success?email=${encodeURIComponent(signUpEmail)}`)
           
       } catch (error: any) {
           toast.error("發生未預期的錯誤")
@@ -187,7 +237,7 @@ export default function LoginPage() {
       {/* Left/Top Side - Image */}
       <div className="relative w-full h-[30vh] lg:h-full bg-muted">
         <Image
-          src="/login_cover.png"
+          src="/login_cover.jpg"
           alt="Login Visual"
           fill
           className="object-cover"
@@ -271,7 +321,7 @@ export default function LoginPage() {
             ) : (
                 <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="signup-email">電子郵件</Label>
+                        <Label htmlFor="signup-email">電子郵件 <span className="text-red-500">*</span></Label>
                         <Input 
                             id="signup-email"
                             type="email"
@@ -282,7 +332,56 @@ export default function LoginPage() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="signup-password">密碼</Label>
+                        <Label htmlFor="signup-full-name">姓名 <span className="text-red-500">*</span></Label>
+                        <Input 
+                            id="signup-full-name"
+                            type="text"
+                            placeholder="請輸入您的姓名"
+                            value={signUpFullName}
+                            onChange={(e) => setSignUpFullName(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-phone">聯絡電話 <span className="text-red-500">*</span></Label>
+                        <Input 
+                            id="signup-phone"
+                            type="tel"
+                            placeholder="0912345678"
+                            value={signUpPhone}
+                            onChange={(e) => setSignUpPhone(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-user-type">身份別 <span className="text-red-500">*</span></Label>
+                        <Select value={signUpUserType} onValueChange={(value: "teacher" | "staff" | "assistant" | "student") => setSignUpUserType(value)}>
+                            <SelectTrigger id="signup-user-type">
+                                <SelectValue placeholder="請選擇身份別" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="teacher">教師</SelectItem>
+                                <SelectItem value="staff">職員</SelectItem>
+                                <SelectItem value="assistant">助理</SelectItem>
+                                <SelectItem value="student">學生</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {signUpUserType === 'student' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="signup-supervisor">上司老師 <span className="text-red-500">*</span></Label>
+                            <Input 
+                                id="signup-supervisor"
+                                type="text"
+                                placeholder="請輸入上司老師姓名"
+                                value={signUpSupervisor}
+                                onChange={(e) => setSignUpSupervisor(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-password">密碼 <span className="text-red-500">*</span></Label>
                         <div className="relative">
                             <Input 
                                 id="signup-password"
@@ -303,7 +402,7 @@ export default function LoginPage() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="confirm-password">確認密碼</Label>
+                        <Label htmlFor="confirm-password">確認密碼 <span className="text-red-500">*</span></Label>
                         <div className="relative">
                             <Input 
                                 id="confirm-password"

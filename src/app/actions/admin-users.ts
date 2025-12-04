@@ -82,6 +82,8 @@ export async function approveUser(userId: string, email: string) {
   // Send notification email
   if (process.env.RESEND_API_KEY) {
     try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
       await resend.emails.send({
         from: '竹師教育學院空間借用系統 <no-reply@will-cheng.com>', // Update this with your verified domain
         to: email,
@@ -92,7 +94,7 @@ export async function approveUser(userId: string, email: string) {
           <p>您的空間借用系統帳號已通過管理員審核。</p>
           <p>您現在可以登入系統進行空間借用了。</p>
           <p>
-            <a href="${process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('.supabase.co', '')}" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">前往登入</a>
+            <a href="${appUrl}/login" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">前往登入</a>
           </p>
           <hr />
           <p style="font-size: 12px; color: #666;">此信件由系統自動發送，請勿回覆。</p>

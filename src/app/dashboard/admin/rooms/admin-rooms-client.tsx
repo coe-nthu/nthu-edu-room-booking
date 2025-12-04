@@ -152,7 +152,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
 
 function AdminRoomImage({ src, alt }: { src: string | null, alt: string }) {
     const [error, setError] = useState(false)
-    const finalSrc = (src && !error) ? src : "/login_cover.png"
+    const finalSrc = (src && !error) ? src : "/login_cover.jpg"
 
     return (
         <Image 
