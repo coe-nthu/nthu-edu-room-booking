@@ -29,10 +29,12 @@ import Image from "next/image"
 type RoomFormDialogProps = {
   mode: "create" | "edit"
   room?: Room
+  /** 現有空間類型清單，用於下拉選單 */
+  roomTypeOptions?: string[]
   children: React.ReactNode
 }
 
-export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
+export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: RoomFormDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
@@ -42,6 +44,16 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
   const [floor, setFloor] = useState(room?.floor || "")
   const [capacity, setCapacity] = useState(room?.capacity?.toString() || "")
   const [roomType, setRoomType] = useState(room?.room_type || "")
+  const [selectedRoomType, setSelectedRoomType] = useState(
+    room && room.room_type && roomTypeOptions.includes(room.room_type)
+      ? room.room_type
+      : "",
+  )
+  const [customRoomType, setCustomRoomType] = useState(
+    room && room.room_type && !roomTypeOptions.includes(room.room_type)
+      ? room.room_type
+      : "",
+  )
   const [equipment, setEquipment] = useState(
     Array.isArray(room?.equipment) ? room?.equipment.join(", ") : ""
   )
@@ -96,6 +108,9 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
       } else if (room) {
         await updateRoom(room.id, data)
         toast.success("已更新空間資訊")
+      }
+      if (typeof window !== "undefined") {
+        window.location.reload()
       }
       setOpen(false)
     } catch (error) {
@@ -210,7 +225,40 @@ export function RoomFormDialog({ mode, room, children }: RoomFormDialogProps) {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="roomType">類型</Label>
-                    <Input id="roomType" value={roomType} onChange={(e) => setRoomType(e.target.value)} placeholder="例: 會議室" />
+                    <div className="space-y-2">
+                      <Select
+                        value={selectedRoomType}
+                        onValueChange={(value) => {
+                          setSelectedRoomType(value)
+                          setCustomRoomType("")
+                          setRoomType(value)
+                        }}
+                      >
+                        <SelectTrigger id="roomType">
+                          <SelectValue placeholder="選擇類型（例如：會議室）" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roomTypeOptions.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={customRoomType}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setCustomRoomType(value)
+                          setSelectedRoomType("")
+                          setRoomType(value)
+                        }}
+                        placeholder="或在此輸入新類別名稱"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        先從上方清單選擇常用類型，若沒有符合的類別，可在下方輸入自訂類別。
+                      </p>
+                    </div>
                 </div>
             </div>
 

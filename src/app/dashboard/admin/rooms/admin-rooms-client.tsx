@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Room } from "@/utils/supabase/queries"
 import {
   Table,
@@ -27,8 +27,16 @@ import { toggleRoomStatus } from "@/app/actions/admin-rooms"
 import { RoomFormDialog } from "./room-form-dialog"
 import { toast } from "sonner"
 import Image from "next/image"
-import { PlusCircle, Pencil, Loader2 } from "lucide-react"
+import { PlusCircle, Pencil, Search } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type AdminRoomsClientProps = {
   initialRooms: Room[]
@@ -39,6 +47,72 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [targetRoom, setTargetRoom] = useState<{ id: string, name: string, isActive: boolean } | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterFloor, setFilterFloor] = useState<string>("all")
+  const [filterRoomType, setFilterRoomType] = useState<string>("all")
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
+
+  const floorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          initialRooms
+            .map((room) => room.floor)
+            .filter((f): f is string => !!f && f.trim().length > 0),
+        ),
+      ).sort(),
+    [initialRooms],
+  )
+
+  const roomTypeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          initialRooms
+            .map((room) => room.room_type)
+            .filter((t): t is string => !!t && t.trim().length > 0),
+        ),
+      ).sort(),
+    [initialRooms],
+  )
+
+  const filteredRooms = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase()
+
+    return rooms.filter((room) => {
+      // 搜尋：名稱與代號
+      if (keyword) {
+        const name = room.name?.toLowerCase() ?? ""
+        const code = room.room_code?.toLowerCase() ?? ""
+        if (!name.includes(keyword) && !code.includes(keyword)) {
+          return false
+        }
+      }
+
+      // 篩選：樓層
+      if (filterFloor !== "all") {
+        if ((room.floor ?? "") !== filterFloor) {
+          return false
+        }
+      }
+
+      // 篩選：類型
+      if (filterRoomType !== "all") {
+        if ((room.room_type ?? "") !== filterRoomType) {
+          return false
+        }
+      }
+
+      // 篩選：狀態
+      if (filterStatus === "active") {
+        if (room.is_active === false) return false
+      } else if (filterStatus === "inactive") {
+        if (room.is_active !== false) return false
+      }
+
+      return true
+    })
+  }, [rooms, searchTerm, filterFloor, filterRoomType, filterStatus])
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
   useEffect(() => {
@@ -113,13 +187,87 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <RoomFormDialog mode="create">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2">
+          <RoomFormDialog mode="create" roomTypeOptions={roomTypeOptions}>
             <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                新增空間
+              <PlusCircle className="mr-2 h-4 w-4" />
+              新增空間
             </Button>
-        </RoomFormDialog>
+          </RoomFormDialog>
+          <div className="text-xs text-muted-foreground">
+            共 {rooms.length} 間空間
+            {(searchTerm.trim() ||
+              filterFloor !== "all" ||
+              filterRoomType !== "all" ||
+              filterStatus !== "all") &&
+              `，目前顯示 ${filteredRooms.length} 間`}
+          </div>
+        </div>
+
+        <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+          <div className="relative w-full md:w-64">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="搜尋名稱或代號..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Select
+              value={filterStatus}
+              onValueChange={(value: "all" | "active" | "inactive") =>
+                setFilterStatus(value)
+              }
+            >
+              <SelectTrigger className="min-w-[120px]">
+                <SelectValue placeholder="狀態" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部狀態</SelectItem>
+                <SelectItem value="active">啟用中</SelectItem>
+                <SelectItem value="inactive">已停用</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filterFloor}
+              onValueChange={(value) => setFilterFloor(value)}
+            >
+              <SelectTrigger className="min-w-[110px]">
+                <SelectValue placeholder="樓層" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部樓層</SelectItem>
+                {floorOptions.map((floor) => (
+                  <SelectItem key={floor} value={floor}>
+                    {floor}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filterRoomType}
+              onValueChange={(value) => setFilterRoomType(value)}
+            >
+              <SelectTrigger className="min-w-[130px]">
+                <SelectValue placeholder="空間類型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部類型</SelectItem>
+                {roomTypeOptions.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -137,7 +285,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <TableRow key={room.id}>
                 <TableCell>
                    <div className="relative w-16 h-10 bg-muted rounded overflow-hidden">
@@ -161,7 +309,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                     checked={room.is_active !== false} // Handle null as true (legacy)
                     onCheckedChange={() => handleToggleStatus(room)}
                   />
-                  <RoomFormDialog mode="edit" room={room}>
+                  <RoomFormDialog mode="edit" room={room} roomTypeOptions={roomTypeOptions}>
                     <Button variant="ghost" size="icon">
                         <Pencil className="h-4 w-4" />
                     </Button>
