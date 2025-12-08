@@ -46,7 +46,7 @@ const items = [
     icon: Home,
   },
   {
-    title: "問題回報",
+    title: "報修系統",
     url: "/dashboard/report",
     icon: AlertCircle,
   },
@@ -64,7 +64,7 @@ const adminItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "回報管理",
+    title: "報修系統管理",
     url: "/dashboard/admin/reports",
     icon: ClipboardList,
   },
@@ -130,7 +130,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>一般功能</SidebarGroupLabel>
+          <SidebarGroupLabel>空間借用</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (

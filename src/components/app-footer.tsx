@@ -107,7 +107,7 @@ export function AppFooter() {
                   <ul className="space-y-2 text-sm">
                     <li>
                       <a
-                        href="mailto:kinshan.lin@mx.nthu.edu.tw?subject=系統問題回報"
+                        href="mailto:nthu-edu-it@will-cheng.com?subject=系統問題回報"
                         className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
                       >
                         系統問題回報

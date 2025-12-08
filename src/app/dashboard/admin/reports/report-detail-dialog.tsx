@@ -96,7 +96,7 @@ export function ReportDetailDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            問題回報詳情
+            報修系統詳情
             <Badge className={statusColors[request.status]} variant="secondary">
               {statusLabels[request.status]}
             </Badge>

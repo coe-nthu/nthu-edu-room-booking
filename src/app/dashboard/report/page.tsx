@@ -33,7 +33,7 @@ export default async function ReportPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">問題回報 / 施工申請</h2>
+        <h2 className="text-2xl font-bold tracking-tight">報修系統 / 施工申請</h2>
         <p className="text-muted-foreground">
           Request Form for Issue Report / Construction Application
         </p>
@@ -43,7 +43,7 @@ export default async function ReportPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-primary" />
-            竹師教育學院大樓問題回報/施工申請單
+            竹師教育學院大樓報修系統/施工申請單
           </CardTitle>
           <CardDescription className="space-y-4 pt-2">
             <p>

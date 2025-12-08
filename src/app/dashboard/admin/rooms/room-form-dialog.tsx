@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Room } from "@/utils/supabase/queries"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,9 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { createRoom, updateRoom, uploadRoomImage } from "@/app/actions/admin-rooms"
+import { RoomAvailabilityTable, UnavailablePeriod } from "./room-availability-table"
 import { toast } from "sonner"
-import { Loader2, Upload, X } from "lucide-react"
+import { Loader2, Upload, X, HelpCircle } from "lucide-react"
 import Image from "next/image"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 type RoomFormDialogProps = {
   mode: "create" | "edit"
@@ -58,12 +63,59 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
     Array.isArray(room?.equipment) ? room?.equipment.join(", ") : ""
   )
   const [imageUrl, setImageUrl] = useState(room?.image_url || "")
+  const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>(
+    (room?.unavailable_periods && Array.isArray(room.unavailable_periods)) 
+      ? room.unavailable_periods 
+      : []
+  )
   
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
 
   const floorOptions = ["B1F", "1F", "2F", "3F", "4F", "5F", "6F", "7F", "8F"]
+
+  // Reset form when dialog opens or room changes
+  useEffect(() => {
+    if (open && room) {
+      setName(room.name || "")
+      setRoomCode(room.room_code || "")
+      setFloor(room.floor || "")
+      setCapacity(room.capacity?.toString() || "")
+      setRoomType(room.room_type || "")
+      setSelectedRoomType(
+        room.room_type && roomTypeOptions.includes(room.room_type)
+          ? room.room_type
+          : ""
+      )
+      setCustomRoomType(
+        room.room_type && !roomTypeOptions.includes(room.room_type)
+          ? room.room_type
+          : ""
+      )
+      setEquipment(
+        Array.isArray(room.equipment) ? room.equipment.join(", ") : ""
+      )
+      setImageUrl(room.image_url || "")
+      setUnavailablePeriods(
+        (room.unavailable_periods && Array.isArray(room.unavailable_periods))
+          ? room.unavailable_periods
+          : []
+      )
+    } else if (open && mode === "create") {
+      // Reset to defaults for create mode
+      setName("")
+      setRoomCode("")
+      setFloor("")
+      setCapacity("")
+      setRoomType("")
+      setSelectedRoomType("")
+      setCustomRoomType("")
+      setEquipment("")
+      setImageUrl("")
+      setUnavailablePeriods([])
+    }
+  }, [open, room, mode, roomTypeOptions])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -99,6 +151,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         capacity: capacity ? parseInt(capacity) : null,
         room_type: roomType,
         equipment: equipmentArray,
+        unavailable_periods: unavailablePeriods,
         image_url: imageUrl || null, // Ensure empty string becomes null
       }
 
@@ -126,16 +179,17 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{mode === "create" ? "新增空間" : "編輯空間"}</DialogTitle>
             <DialogDescription>
-              請輸入空間詳細資訊。點擊儲存以套用變更。
+              請輸入空間詳細資訊。右側課表勾選的時段將不開放借用。
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 py-4">
+            <div className="space-y-4">
             {/* Image Upload Section */}
             <div className="flex flex-col items-center gap-4">
                 <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 flex items-center justify-center group">
@@ -245,19 +299,35 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        value={customRoomType}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          setCustomRoomType(value)
-                          setSelectedRoomType("")
-                          setRoomType(value)
-                        }}
-                        placeholder="或在此輸入新類別名稱"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        先從上方清單選擇常用類型，若沒有符合的類別，可在下方輸入自訂類別。
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              aria-label="說明"
+                            >
+                              <HelpCircle className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-[200px]">
+                            <p className="text-xs">
+                              先從上方清單選擇常用類型，若沒有符合的類別，可在下方輸入自訂類別。
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Input
+                          value={customRoomType}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setCustomRoomType(value)
+                            setSelectedRoomType("")
+                            setRoomType(value)
+                          }}
+                          placeholder="輸入新類別"
+                          className="flex-1"
+                        />
+                      </div>
                     </div>
                 </div>
             </div>
@@ -271,14 +341,25 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
                 placeholder="投影機, 白板, 麥克風 (以逗號分隔)"
               />
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="submit" disabled={isLoading || isUploading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              儲存變更
-            </Button>
-          </DialogFooter>
+            <div className="pt-2">
+              <Button type="submit" disabled={isLoading || isUploading} className="w-full">
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                儲存變更
+              </Button>
+            </div>
+            </div>
+
+            <div className="space-y-3">
+               <div>
+                 <Label className="text-base font-semibold">不開放借用時段</Label>
+                 <p className="text-sm text-muted-foreground mt-1">
+                   勾選的時段將不開放給使用者借用
+                 </p>
+               </div>
+               <RoomAvailabilityTable value={unavailablePeriods} onChange={setUnavailablePeriods} />
+            </div>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

@@ -35,6 +35,7 @@ export async function createRoom(data: Partial<Room>) {
       floor: data.floor,
       room_type: data.room_type,
       equipment: data.equipment || [],
+      unavailable_periods: data.unavailable_periods || [],
       image_url: data.image_url,
       is_active: data.is_active ?? true,
     })
@@ -57,6 +58,7 @@ export async function updateRoom(id: string, data: Partial<Room>) {
       floor: data.floor,
       room_type: data.room_type,
       equipment: data.equipment,
+      unavailable_periods: data.unavailable_periods,
       image_url: data.image_url,
     })
     .eq('id', id)

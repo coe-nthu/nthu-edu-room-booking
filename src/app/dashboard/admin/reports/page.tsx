@@ -8,9 +8,9 @@ export default async function AdminReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">回報管理</h2>
+          <h2 className="text-2xl font-bold tracking-tight">報修系統管理</h2>
           <p className="text-muted-foreground">
-            查看與處理問題回報及施工申請
+            查看與處理報修系統及施工申請
           </p>
         </div>
       </div>
