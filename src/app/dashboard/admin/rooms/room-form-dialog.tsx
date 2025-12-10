@@ -248,11 +248,11 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                <Label htmlFor="name">空間名稱</Label>
+                <Label htmlFor="name">名稱</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                <Label htmlFor="roomCode">空間代號</Label>
+                <Label htmlFor="roomCode">編號</Label>
                 <Input id="roomCode" value={roomCode} onChange={(e) => setRoomCode(e.target.value)} />
                 </div>
             </div>

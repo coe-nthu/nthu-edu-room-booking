@@ -60,7 +60,7 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center justify-end gap-1.5">
       <Button 
         size="sm" 
         variant="default" 
