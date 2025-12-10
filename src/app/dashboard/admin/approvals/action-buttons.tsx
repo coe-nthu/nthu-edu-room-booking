@@ -17,12 +17,23 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { Trash2 } from "lucide-react"
+import { deleteBooking } from "@/app/actions/admin-bookings"
 
-export function ActionButtons({ bookingId }: { bookingId: string }) {
+export function ActionButtons({ 
+  bookingId, 
+  status,
+  onSuccess
+}: { 
+  bookingId: string
+  status: string
+  onSuccess?: (action: 'approve' | 'reject' | 'delete') => void
+}) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const handleApprove = async () => {
     setIsLoading(true)
@@ -33,6 +44,7 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
       if (!response.ok) throw new Error('操作失敗')
       toast.success("已核准預約")
       router.refresh()
+      onSuccess?.('approve')
     } catch {
       toast.error("核准失敗")
     } finally {
@@ -52,6 +64,7 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
       toast.success("已拒絕預約")
       setIsRejectDialogOpen(false)
       router.refresh()
+      onSuccess?.('reject')
     } catch {
       toast.error("拒絕失敗")
     } finally {
@@ -59,6 +72,22 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
     }
   }
 
+  const handleDelete = async () => {
+    setIsLoading(true)
+    try {
+      await deleteBooking(bookingId)
+      toast.success("已刪除預約")
+      setIsDeleteDialogOpen(false)
+      router.refresh()
+      onSuccess?.('delete')
+    } catch {
+      toast.error("刪除失敗")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (status === 'pending') {
   return (
     <div className="flex items-center justify-end gap-1.5">
       <Button 
@@ -108,5 +137,39 @@ export function ActionButtons({ bookingId }: { bookingId: string }) {
       </AlertDialog>
     </div>
   )
+  }
+
+  if (status === 'approved' || status === 'rejected') {
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" disabled={isLoading}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>確定要刪除此預約紀錄？</AlertDialogTitle>
+              <AlertDialogDescription>
+                此動作無法復原。刪除後，此預約紀錄將會永久消失。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                確認刪除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    )
+  }
+
+  return null
 }
 

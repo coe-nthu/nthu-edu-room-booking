@@ -42,7 +42,7 @@ export function ApprovalToolbar() {
       <div className="relative flex-1">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="搜尋申請人、學號、空間名稱或代碼..."
+          placeholder="搜尋申請人、空間名稱或編號..."
           defaultValue={currentSearch}
           onChange={(e) => debouncedSearch(e.target.value)}
           className="pl-8"

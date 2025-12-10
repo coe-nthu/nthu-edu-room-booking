@@ -57,7 +57,7 @@ const reportItems = [
 
 const adminItems = [
   {
-    title: "預約審核",
+    title: "預約管理",
     url: "/dashboard/admin/approvals",
     icon: Inbox,
   },
