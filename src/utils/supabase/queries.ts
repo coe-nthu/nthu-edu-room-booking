@@ -58,7 +58,9 @@ export async function getRoomById(id: string): Promise<Room | null> {
 
 export type Booking = {
   id: string
+  room_id?: string
   room: {
+    id?: string
     name: string
     room_code: string | null
     capacity: number | null
@@ -83,12 +85,14 @@ export async function getUserBookings(): Promise<Booking[]> {
     .from('bookings')
     .select(`
       id,
+      room_id,
       start_time,
       end_time,
       status,
       purpose,
       created_at,
       room:rooms (
+        id,
         name,
         room_code,
         capacity,

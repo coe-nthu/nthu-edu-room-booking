@@ -1,4 +1,5 @@
-import { getUserBookings } from "@/utils/supabase/queries"
+import { getUserBookings, getRooms } from "@/utils/supabase/queries"
+import { getSemesterSettings } from "@/app/actions/admin-settings"
 import { format } from "date-fns"
 import { zhTW } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
@@ -12,9 +13,14 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CancelBookingButton } from "./cancel-button"
+import { EditBookingDialog } from "./edit-booking-dialog"
+import { Button } from "@/components/ui/button"
+import { Pencil } from "lucide-react"
 
 export default async function MyBookingsPage() {
   const bookings = await getUserBookings()
+  const rooms = await getRooms()
+  const semesterSettings = await getSemesterSettings()
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -94,9 +100,23 @@ export default async function MyBookingsPage() {
                       {format(new Date(booking.created_at), "yyyy/MM/dd HH:mm")}
                     </TableCell>
                     <TableCell className="text-right">
-                      {booking.status === 'pending' && (
-                        <CancelBookingButton bookingId={booking.id} />
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {booking.status === 'pending' && (
+                          <>
+                            <EditBookingDialog 
+                              booking={booking} 
+                              rooms={rooms}
+                              semesterSettings={semesterSettings}
+                            >
+                              <Button variant="ghost" size="sm" className="h-8">
+                                <Pencil className="h-4 w-4 mr-1" />
+                                編輯
+                              </Button>
+                            </EditBookingDialog>
+                            <CancelBookingButton bookingId={booking.id} />
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

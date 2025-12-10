@@ -45,8 +45,11 @@ const items = [
     url: "/dashboard/spaces",
     icon: Home,
   },
+]
+
+const reportItems = [
   {
-    title: "報修系統",
+    title: "線上填報",
     url: "/dashboard/report",
     icon: AlertCircle,
   },
@@ -142,6 +145,27 @@ export function AppSidebar() {
                   >
                     <a href={item.url}>
                       <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>報修系統</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {reportItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={pathname === item.url}
+                  >
+                    <a href={item.url}>
+                      <item.icon />
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
