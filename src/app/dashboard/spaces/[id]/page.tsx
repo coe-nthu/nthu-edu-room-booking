@@ -81,18 +81,8 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {/* Timetable */}
-        <div className="space-y-4">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        本週預約狀況
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <RoomTimetable roomId={room.id} />
-                </CardContent>
-             </Card>
+        <div className="space-y-4"> 
+            <RoomTimetable roomId={room.id} />
         </div>
       </div>
     </div>

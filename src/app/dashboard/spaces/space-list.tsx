@@ -178,6 +178,7 @@ function RoomImage({ src, alt }: { src: string | null, alt: string }) {
             alt={alt}
             fill
             className="object-cover transition-transform group-hover:scale-105"
+            unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />
     )

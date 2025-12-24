@@ -356,6 +356,7 @@ function AdminRoomImage({ src, alt }: { src: string | null, alt: string }) {
             alt={alt}
             fill
             className="object-cover"
+            unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />
     )
