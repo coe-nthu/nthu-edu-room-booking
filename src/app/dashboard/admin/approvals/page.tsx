@@ -1,10 +1,10 @@
 import { getAdminBookings } from "@/utils/supabase/admin-queries"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ApprovalToolbar } from "./approval-toolbar"
-import { BookingList, type Booking as BookingListItem } from "./booking-list"
+import { AdminApprovalsClient } from "./admin-approvals-client"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
+import type { Booking as BookingListItem } from "./booking-list"
 
 export default async function AdminApprovalsPage({
   searchParams,
@@ -43,14 +43,10 @@ export default async function AdminApprovalsPage({
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>預約列表</CardTitle>
-        </CardHeader>
         <CardContent>
           <Suspense fallback={<div className="h-10" />}>
-            <ApprovalToolbar />
+            <AdminApprovalsClient initialBookings={bookings as unknown as BookingListItem[]} />
           </Suspense>
-          <BookingList initialBookings={bookings as unknown as BookingListItem[]} />
         </CardContent>
       </Card>
     </div>

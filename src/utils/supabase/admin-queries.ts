@@ -88,23 +88,16 @@ export async function getAdminBookings(
     })
   }
 
-  // Sort: pending first, then by created_at (oldest first for pending, newest first for others)
+  // Sort: pending first, then by start_time descending (newest time first)
   bookings.sort((a, b) => {
-    // Pending first
+    // First, sort by status: pending first
     if (a.status === 'pending' && b.status !== 'pending') return -1
     if (a.status !== 'pending' && b.status === 'pending') return 1
     
-    // Within same status group, sort by created_at
-    const aDate = new Date(a.created_at).getTime()
-    const bDate = new Date(b.created_at).getTime()
-    
-    if (a.status === 'pending') {
-      // Oldest first for pending
-      return aDate - bDate
-    } else {
-      // Newest first for approved/rejected
-      return bDate - aDate
-    }
+    // If same status (both pending or both not pending), sort by start_time descending (newest first)
+    const timeA = new Date(a.start_time).getTime()
+    const timeB = new Date(b.start_time).getTime()
+    return timeB - timeA  // Descending order (newest first)
   })
 
   return bookings

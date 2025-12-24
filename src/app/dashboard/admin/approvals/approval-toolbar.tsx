@@ -9,12 +9,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Search } from "lucide-react"
+import { Search, RefreshCw } from "lucide-react"
 import { useDebouncedCallback } from "use-debounce"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
-export function ApprovalToolbar() {
+interface ApprovalToolbarProps {
+  showHistory: boolean
+  onShowHistoryChange: (value: boolean) => void
+}
+
+export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalToolbarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [isRefreshing, setIsRefreshing] = useState(false)
   
   const currentStatus = searchParams.get('status') || 'all'
   const currentSearch = searchParams.get('search') || ''
@@ -37,9 +47,18 @@ export function ApprovalToolbar() {
     updateSearchParams('status', value)
   }
 
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    router.refresh()
+    // 重置 loading 狀態（refresh 是異步的，但我們可以設定一個短暫的延遲）
+    setTimeout(() => {
+      setIsRefreshing(false)
+    }, 500)
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mb-6">
-      <div className="relative flex-1">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+      <div className="relative w-full sm:w-[400px]">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="搜尋申請人、空間名稱或編號..."
@@ -48,18 +67,40 @@ export function ApprovalToolbar() {
           className="pl-8"
         />
       </div>
-      <div className="w-full sm:w-[200px]">
-        <Select value={currentStatus} onValueChange={handleStatusChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="篩選狀態" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部狀態</SelectItem>
-            <SelectItem value="pending">待審核</SelectItem>
-            <SelectItem value="approved">已核准</SelectItem>
-            <SelectItem value="rejected">已拒絕</SelectItem>
-          </SelectContent>
-        </Select>
+      
+      <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="bg-white hover:bg-gray-50 border-gray-300"
+        >
+          <RefreshCw 
+            className={`h-4 w-4 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} 
+          />
+        </Button>
+        <div className="w-full">
+          <Select value={currentStatus} onValueChange={handleStatusChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="篩選狀態" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部狀態</SelectItem>
+              <SelectItem value="pending">待審核</SelectItem>
+              <SelectItem value="approved">已核准</SelectItem>
+              <SelectItem value="rejected">已拒絕</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="show-history"
+            checked={showHistory}
+            onCheckedChange={onShowHistoryChange}
+          />
+          <Label htmlFor="show-history" className="text-sm whitespace-nowrap">顯示歷史紀錄</Label>
+        </div>
       </div>
     </div>
   )

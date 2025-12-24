@@ -13,11 +13,15 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ActionButtons } from "./action-buttons"
 import { useState, useEffect } from "react"
+import { toTaipeiTime } from "@/lib/utils"
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export type Booking = {
   id: string
   start_time: string
   end_time: string
+  created_at: string
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
   purpose: string | null
   user: {
@@ -35,10 +39,18 @@ export type Booking = {
 
 interface BookingListProps {
   initialBookings: Booking[]
+  showHistory: boolean
 }
 
-export function BookingList({ initialBookings }: BookingListProps) {
+type SortField = 'department' | 'room' | 'time' | 'created_at' | null
+type SortOrder = 'asc' | 'desc' | null
+
+export function BookingList({ initialBookings, showHistory }: BookingListProps) {
   const [bookings, setBookings] = useState(initialBookings)
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>(null)
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null)
 
   useEffect(() => {
     setBookings(initialBookings)
@@ -48,8 +60,6 @@ export function BookingList({ initialBookings }: BookingListProps) {
     if (action === 'delete') {
       setBookings(prev => prev.filter(b => b.id !== id))
     }
-    // For approve/reject, router.refresh() in ActionButtons will trigger a re-render
-    // causing useEffect to update the list with new statuses
   }
 
   const getStatusBadge = (status: string) => {
@@ -68,63 +78,173 @@ export function BookingList({ initialBookings }: BookingListProps) {
     }
   }
 
+  // Sorting logic
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle order: null -> asc -> desc -> null
+      if (sortOrder === null) setSortOrder('asc')
+      else if (sortOrder === 'asc') setSortOrder('desc')
+      else {
+        setSortOrder(null)
+        setSortField(null)
+      }
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  const filteredBookings = bookings.filter(booking => {
+    if (showHistory) return true
+    const endTime = new Date(booking.end_time)
+    const now = new Date()
+    return endTime >= now
+  })
+
+  // Apply sorting
+  const sortedBookings = [...filteredBookings].sort((a, b) => {
+    // Default sort: pending first, then by start_time descending
+    if (!sortField || !sortOrder) {
+      // First, sort by status: pending first
+      if (a.status === 'pending' && b.status !== 'pending') return -1
+      if (a.status !== 'pending' && b.status === 'pending') return 1
+      
+      // If same status, sort by start_time descending (near time first)
+      const timeA = new Date(a.start_time).getTime()
+      const timeB = new Date(b.start_time).getTime()
+      return timeA - timeB   // Descending order (near time first)
+    }
+
+    let comparison = 0
+    switch (sortField) {
+      case 'department':
+        const deptA = a.user.department?.name || ''
+        const deptB = b.user.department?.name || ''
+        comparison = deptA.localeCompare(deptB, "zh-TW")
+        break
+      case 'room':
+        // Sort by floor (B1F < 1F < 2F...), simplistic check based on room_code
+        // Assuming room_code first char is floor number or 'B'
+        const getFloorValue = (code: string | null) => {
+           if (!code) return 100 // No code, push to end
+           if (code.startsWith('B')) return -parseInt(code.slice(1,2)) || -0.5
+           return parseInt(code.slice(0,1)) || 100
+        }
+        const floorA = getFloorValue(a.room.room_code)
+        const floorB = getFloorValue(b.room.room_code)
+        
+        if (floorA !== floorB) {
+            comparison = floorA - floorB
+        } else {
+            // Same floor, sort by name
+            const nameA = a.room.name || ''
+            const nameB = b.room.name || ''
+            comparison = nameA.localeCompare(nameB, "zh-TW")
+        }
+        break
+      case 'time':
+        comparison = new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+        break
+      case 'created_at':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        break
+    }
+
+    return sortOrder === 'asc' ? comparison : -comparison
+  })
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="ml-2 h-4 w-4" />
+    if (sortOrder === 'asc') return <ArrowUp className="ml-2 h-4 w-4" />
+    if (sortOrder === 'desc') return <ArrowDown className="ml-2 h-4 w-4" />
+    return <ArrowUpDown className="ml-2 h-4 w-4" />
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>申請人</TableHead>
-          <TableHead>單位/系所</TableHead>
-          <TableHead>空間代碼</TableHead>
-          <TableHead>空間</TableHead>
-          <TableHead>時間</TableHead>
-          <TableHead className="w-[300px]">事由</TableHead>
-          <TableHead className="w-[100px]">狀態</TableHead>
-          <TableHead className="text-right w-[140px]">操作</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {bookings.length === 0 ? (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
-              目前沒有符合條件的預約
-            </TableCell>
+            <TableHead>申請人</TableHead>
+            <TableHead className="text-left w-[120px]">
+                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('department')}>
+                    單位/系所
+                    {getSortIcon('department')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-left w-[200px]">
+                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
+                    空間
+                    {getSortIcon('room')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-left w-[150px]">
+                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
+                    時間
+                    {getSortIcon('time')}
+                </Button>
+            </TableHead>
+            <TableHead className="w-[200px]">事由</TableHead>
+            <TableHead className="text-left w-[140px]">
+                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
+                    申請時間
+                    {getSortIcon('created_at')}
+                </Button>
+            </TableHead>
+            <TableHead className="w-[100px]">狀態</TableHead>
+            <TableHead className="text-right w-[140px]">操作</TableHead>
           </TableRow>
-        ) : (
-          bookings.map((booking) => (
-            <TableRow key={booking.id}>
-              <TableCell>
-                <div className="font-medium">{booking.user.full_name}</div>
-                <div className="text-xs text-muted-foreground">{booking.user.student_id}</div>
-              </TableCell>
-              <TableCell>{booking.user.department?.name || '-'}</TableCell>
-              <TableCell className="font-medium">{booking.room.room_code || '-'}</TableCell>
-              <TableCell>{booking.room.name}</TableCell>
-              <TableCell>
-                <div className="font-medium">
-                  {format(new Date(booking.start_time), "MM/dd", { locale: zhTW })}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {format(new Date(booking.start_time), "HH:mm")} - {format(new Date(booking.end_time), "HH:mm")}
-                </div>
-              </TableCell>
-              <TableCell className="max-w-[300px] truncate" title={booking.purpose || ''}>
-                {booking.purpose}
-              </TableCell>
-              <TableCell className="w-[100px]">
-                {getStatusBadge(booking.status)}
-              </TableCell>
-              <TableCell className="text-right w-[140px] pl-2">
-                <ActionButtons 
-                  bookingId={booking.id} 
-                  status={booking.status}
-                  onSuccess={(action) => handleActionSuccess(booking.id, action)}
-                />
+        </TableHeader>
+        <TableBody>
+          {sortedBookings.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
+                {showHistory ? "目前沒有符合條件的預約" : "目前無有效預約，請開啟歷史紀錄查看過往預約"}
               </TableCell>
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+          ) : (
+            sortedBookings.map((booking) => (
+              <TableRow key={booking.id}>
+                <TableCell>
+                  <div className="font-medium">{booking.user.full_name}</div>
+                  <div className="text-xs text-muted-foreground">{booking.user.student_id}</div>
+                </TableCell>
+                <TableCell className="text-left">{booking.user.department?.name || '-'}</TableCell>
+                <TableCell className="max-w-[250px] truncate text-left" title={booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name}>
+                  {(() => {
+                    const fullName = booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name
+                    return fullName.length > 12 ? `${fullName.slice(0, 12)}...` : fullName
+                  })()}
+                </TableCell>
+                <TableCell className="text-left">
+                  <div className="font-medium">
+                    {format(toTaipeiTime(booking.start_time), "MM/dd", { locale: zhTW })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(toTaipeiTime(booking.start_time), "HH:mm")} - {format(toTaipeiTime(booking.end_time), "HH:mm")}
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[200px] truncate" title={booking.purpose || ''}>
+                  {booking.purpose}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground text-left">
+                  {format(toTaipeiTime(booking.created_at), "MM/dd HH:mm")}
+                </TableCell>
+                <TableCell className="w-[100px]">
+                  {getStatusBadge(booking.status)}
+                </TableCell>
+                <TableCell className="text-right w-[140px] pl-2">
+                  <ActionButtons 
+                    bookingId={booking.id} 
+                    status={booking.status}
+                    onSuccess={(action) => handleActionSuccess(booking.id, action)}
+                  />
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
-
