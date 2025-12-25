@@ -19,6 +19,6 @@ export default async function DashboardPage() {
   if (profile?.role === 'admin') {
     redirect('/dashboard/admin/approvals')
   } else {
-    redirect('/dashboard/book')
+    redirect('/dashboard/spaces')
   }
 }
