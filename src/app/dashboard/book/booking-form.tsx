@@ -43,31 +43,9 @@ import {
   isDateInLockedPeriod, 
   getCurrentSemester,
   getNextSemester,
-  isSameDay
 } from "@/utils/semester"
-
-const bookingFormSchema = z.object({
-  roomId: z.string({
-    message: "請選擇空間",
-  }),
-  date: z.date({
-    message: "請選擇日期",
-  }),
-  startTime: z.string({
-    message: "請選擇開始時間",
-  }),
-  endTime: z.string({
-    message: "請選擇結束時間",
-  }),
-  purpose: z.string().min(5, {
-    message: "事由至少需要 5 個字",
-  }),
-}).refine((data) => {
-  return data.endTime > data.startTime
-}, {
-  message: "結束時間必須晚於開始時間",
-  path: ["endTime"],
-})
+import { bookingFormSchema, BookingFormValues } from "./schema"
+import { validateBookingRules, generateTimeSlots } from "./utils"
 
 type BookingFormProps = {
   rooms: Room[]
@@ -82,7 +60,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
   const [isAdmin, setIsAdmin] = useState(false)
   const [semesters, setSemesters] = useState<SemesterSetting[]>(semesterSettings)
   
-  const form = useForm<z.infer<typeof bookingFormSchema>>({
+  const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       purpose: "",
@@ -144,7 +122,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     checkUserRoleAndFetchSemesters()
   }, [semesterSettings.length])
 
-  async function onSubmit(values: z.infer<typeof bookingFormSchema>) {
+  async function onSubmit(values: BookingFormValues) {
     const startDateTime = new Date(values.date)
     const [startHour, startMinute] = values.startTime.split(':').map(Number)
     startDateTime.setHours(startHour, startMinute, 0, 0)
@@ -153,59 +131,18 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     const [endHour, endMinute] = values.endTime.split(':').map(Number)
     endDateTime.setHours(endHour, endMinute, 0, 0)
 
-    // Check that start and end are on the same day (no multi-day bookings)
-    if (!isSameDay(startDateTime, endDateTime)) {
-      toast.error("每次預約僅能借用單日，不能跨日連續借用")
+    const validation = validateBookingRules(
+      startDateTime, 
+      endDateTime, 
+      values.roomId, 
+      rooms, 
+      semesters, 
+      isAdmin
+    )
+
+    if (!validation.isValid) {
+      toast.error(validation.message)
       return
-    }
-
-    // 1. Check user role for 7-day rule (Client-side pre-check)
-    if (!isAdmin) {
-      const today = new Date()
-      const minDate = new Date()
-      minDate.setDate(today.getDate() + 7)
-      minDate.setHours(0, 0, 0, 0)
-      
-      if (startDateTime < minDate) {
-        toast.error("一般使用者需於 7 天前申請")
-        return
-      }
-      
-      // Check 4-month limit for non-admins
-      if (!isDateWithin4Months(startDateTime)) {
-        toast.error("一般使用者僅能借用未來 4 個月內的日期")
-        return
-      }
-      
-      // Check semester lock for non-admins (skip for Meeting rooms)
-      const roomToBook = rooms.find(r => r.id === values.roomId)
-      const isBookingMeetingRoom = roomToBook?.room_type === "Meeting"
-      if (!isBookingMeetingRoom && isDateInLockedPeriod(startDateTime, semesters, false)) {
-        toast.error("下學期課表尚未確認，暫不開放預約")
-        return
-      }
-    }
-
-    // Rule: Unavailable periods check
-    const selectedRoom = rooms.find(r => r.id === values.roomId)
-    if (selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
-      const bookingDay = startDateTime.getDay()
-      const requestStartMins = startHour * 60 + startMinute
-      const requestEndMins = endHour * 60 + endMinute
-
-      for (const period of selectedRoom.unavailable_periods) {
-        if (period.day === bookingDay) {
-           const [pStartH, pStartM] = period.start.split(':').map(Number)
-           const [pEndH, pEndM] = period.end.split(':').map(Number)
-           const periodStartMins = pStartH * 60 + pStartM
-           const periodEndMins = pEndH * 60 + pEndM
-
-           if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
-             toast.error(`此空間 ${period.start}-${period.end} 不開放借用`)
-             return
-           }
-        }
-      }
     }
 
     try {
@@ -236,13 +173,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
     }
   }
 
-  // Generate 30-minute interval time slots from 08:00 to 22:00
-  const timeSlots = Array.from({ length: 29 }, (_, i) => {
-    const totalMinutes = 8 * 60 + i * 30 // Start from 08:00
-    const hour = Math.floor(totalMinutes / 60)
-    const minute = totalMinutes % 60
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-  })
+  const timeSlots = generateTimeSlots()
 
   // Get current and next semester for display
   const currentSemester = getCurrentSemester(semesters)

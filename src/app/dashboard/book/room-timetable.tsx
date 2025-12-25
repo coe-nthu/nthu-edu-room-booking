@@ -127,7 +127,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
   }
 
   return (
-    <div className="h-[600px] relative bg-background rounded-lg border p-4 shadow-sm fc-wrapper">
+    <div className="relative bg-background rounded-lg border p-4 shadow-sm fc-wrapper">
       {loading && (
         <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10 rounded-lg">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -182,7 +182,8 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
         selectMirror={true}
         select={handleDateSelect}
         events={calendarEvents}
-        height="100%"
+        height="auto"
+        contentHeight="auto"
         dayMaxEvents={true}
         weekends={true}
         firstDay={new Date().getDay()} // Set first day to today dynamically

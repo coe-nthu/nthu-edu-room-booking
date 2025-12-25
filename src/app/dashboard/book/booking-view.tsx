@@ -69,21 +69,12 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
       </Card>
       
       <div className="space-y-4">
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle>空間預約狀況</CardTitle>
-                <CardDescription>
-                    {rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <h3 className="text-lg font-bold">{rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形</h3>
                 <RoomTimetable 
                     roomId={selectedRoomId} 
                     onSelectSlot={setSelectedSlot}
                     selectedSlot={selectedSlot}
                 />
-            </CardContent>
-        </Card>
       </div>
     </div>
   )
