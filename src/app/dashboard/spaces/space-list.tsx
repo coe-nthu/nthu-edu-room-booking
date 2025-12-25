@@ -22,6 +22,8 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
   const [selectedType, setSelectedType] = useState<string>("all")
 
   // Derive unique floors
+
+  // Derive unique floors
   const floors = useMemo(() => {
     const uniqueFloors = Array.from(new Set(initialRooms.map(r => r.floor).filter(Boolean)))
     // Sort floors naturally (B1, 1F, 2F, etc.) - simplified sort for now
