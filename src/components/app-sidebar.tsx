@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList } from "lucide-react"
+import { Calendar, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -34,12 +34,13 @@ const items = [
     title: "借用空間",
     url: "/dashboard/spaces",
     icon: Home,
+    highlight: false,
   },
-  {
-    title: "預約空間(舊版)",
-    url: "/dashboard/book",
-    icon: PlusCircle,
-  },
+  // {
+  //   title: "預約空間(舊版)",
+  //   url: "/dashboard/book",
+  //   icon: PlusCircle,
+  // },
   {
     title: "我的預約",
     url: "/dashboard/my-bookings",
@@ -52,6 +53,11 @@ const reportItems = [
     title: "線上填報",
     url: "/dashboard/report",
     icon: AlertCircle,
+  },
+  {
+    title: "報修紀錄",
+    url: "/dashboard/report/records",
+    icon: ClipboardList,
   },
 ]
 
@@ -99,7 +105,10 @@ export function AppSidebar() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!user) return
+      if (!user) {
+        setIsAdmin(false)
+        return
+      }
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -115,6 +124,10 @@ export function AppSidebar() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    router.push("/login")
+  }
+
+  const handleSignIn = () => {
     router.push("/login")
   }
 
@@ -136,19 +149,24 @@ export function AppSidebar() {
           <SidebarGroupLabel>空間借用</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={pathname === item.url}
-                    className={item.highlight ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50" : ""}
-                  >
-                    <a href={item.url}>
-                      <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {items
+                .filter(item => {
+                  if (item.title === "我的預約" && !user) return false;
+                  return true;
+                })
+                .map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={pathname === item.url}
+                      className={item.highlight ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50" : ""}
+                    >
+                      <a href={item.url}>
+                        <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -199,33 +217,13 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             {mounted ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  >
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
-                      <span className="truncate text-xs">{user?.email || ''}</span>
-                    </div>
-                    <User className="ml-auto size-4" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                  side="bottom"
-                  align="end"
-                  sideOffset={4}
-                >
-                  <DropdownMenuItem
-                    className="p-0 font-normal focus:bg-transparent"
-                    onClick={() => router.push("/dashboard/profile")}
-                  >
-                    <div className="flex w-full cursor-pointer items-center gap-2 px-1 py-1.5 text-left text-sm">
+              user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      size="lg"
+                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                    >
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                       </Avatar>
@@ -233,15 +231,47 @@ export function AppSidebar() {
                         <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
                         <span className="truncate text-xs">{user?.email || ''}</span>
                       </div>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 size-4" />
-                    登出
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                      <User className="ml-auto size-4" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                    side="bottom"
+                    align="end"
+                    sideOffset={4}
+                  >
+                    <DropdownMenuItem
+                      className="p-0 font-normal focus:bg-transparent"
+                      onClick={() => router.push("/dashboard/profile")}
+                    >
+                      <div className="flex w-full cursor-pointer items-center gap-2 px-1 py-1.5 text-left text-sm">
+                        <Avatar className="h-8 w-8 rounded-lg">
+                          <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                        </Avatar>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                          <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
+                          <span className="truncate text-xs">{user?.email || ''}</span>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 size-4" />
+                      登出
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <SidebarMenuButton size="lg" onClick={handleSignIn}>
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <LogIn className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">訪客</span>
+                    <span className="truncate text-xs">點此登入</span>
+                  </div>
+                </SidebarMenuButton>
+              )
             ) : (
               <SidebarMenuButton size="lg" className="cursor-default">
                 <Skeleton className="h-8 w-8 rounded-lg" />

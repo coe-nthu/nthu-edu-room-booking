@@ -38,6 +38,7 @@ import {
   isDateWithin4Months, 
   isDateInLockedPeriod 
 } from "@/utils/semester"
+import { useUser } from "@/hooks/use-user"
 
 type BookingWidgetProps = {
   room: Room
@@ -47,13 +48,49 @@ type BookingWidgetProps = {
   onChange: (slot: { start: Date; end: Date } | null) => void
 }
 
+import { useEffect } from "react"
+// ... imports ...
+
 export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange }: BookingWidgetProps) {
   const router = useRouter()
+  const { user, loading } = useUser() // Check loading state to ensure auth is checked
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [purpose, setPurpose] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Restore booking data from localStorage if available and user is logged in
+  useEffect(() => {
+    if (loading) return // Wait for auth check
+
+    const storedBooking = localStorage.getItem(`pendingBooking_${room.id}`)
+    if (storedBooking) {
+        try {
+            const { start, end, purpose: storedPurpose } = JSON.parse(storedBooking)
+            const startDate = new Date(start)
+            const endDate = new Date(end)
+            
+            // Only restore if dates are valid
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                onChange({ start: startDate, end: endDate })
+                if (storedPurpose) setPurpose(storedPurpose)
+                
+                // If user is logged in, open the dialog automatically to continue
+                // If not logged in, just filling the form is enough (they will hit reserve again)
+                if (user) {
+                     setIsDialogOpen(true)
+                     // Clear storage after successfully restoring
+                     localStorage.removeItem(`pendingBooking_${room.id}`)
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse stored booking", e)
+            localStorage.removeItem(`pendingBooking_${room.id}`)
+        }
+    }
+  }, [user, loading, room.id, onChange])
+
   const handleReserveClick = () => {
+    // Removed user check here to allow guests to click reserve and enter details
     if (!selectedSlot) {
       toast.error("請先選擇預約時間")
       return
@@ -63,7 +100,7 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
       selectedSlot.start,
       selectedSlot.end,
       room.id,
-      [room], // Pass as array for the utility
+      [room], 
       semesters,
       isAdmin
     )
@@ -77,6 +114,26 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
   }
 
   const handleSubmit = async () => {
+    // Check auth here instead
+    if (!user) {
+        // Save state to localStorage
+        if (selectedSlot) {
+            const bookingData = {
+                start: selectedSlot.start.toISOString(),
+                end: selectedSlot.end.toISOString(),
+                purpose
+            }
+            localStorage.setItem(`pendingBooking_${room.id}`, JSON.stringify(bookingData))
+        }
+        
+        toast.error("請先登入以完成預約")
+        // Redirect to login with return path
+        // Use window.location.pathname to get current path including id
+        const returnUrl = window.location.pathname
+        router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
+        return
+    }
+
     if (!selectedSlot) return
     if (purpose.trim().length < 5) {
       toast.error("事由至少需要 5 個字")
@@ -106,7 +163,9 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
         toast.success("預約申請已送出")
         setIsDialogOpen(false)
         setPurpose("")
-        onChange(null) // Clear selection
+        onChange(null) 
+        // Clear any stored booking data just in case
+        localStorage.removeItem(`pendingBooking_${room.id}`)
         router.push('/dashboard/my-bookings')
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : '預約失敗'

@@ -31,9 +31,21 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Define paths that don't require approval
-  const publicPaths = ['/login', '/auth', '/reset-password']
+  // Define paths that are publicly accessible (no login required)
+  const publicPaths = [
+    '/login', 
+    '/auth', 
+    '/reset-password',
+    '/dashboard/spaces', // Allow viewing spaces
+    '/dashboard/rules',   // Allow viewing rules
+    '/dashboard/report/records' // Allow viewing maintenance records
+  ]
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
+
+  // If user is not logged in and trying to access a protected route
+  if (!user && !isPublicPath && request.nextUrl.pathname !== '/') {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 
   if (user && !isPublicPath) {
     // Fetch profile to check approval status and role

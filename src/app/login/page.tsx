@@ -65,7 +65,9 @@ export default function LoginPage() {
     setIsMounted(true)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-        router.push('/dashboard')
+        const params = new URLSearchParams(window.location.search)
+        const next = params.get('next') || '/dashboard'
+        router.push(next)
       }
     })
 
@@ -136,12 +138,18 @@ export default function LoginPage() {
   // 動態計算重定向 URL
   const getRedirectUrl = () => {
     if (typeof window === 'undefined') return ''
-    return `${origin}/auth/callback?next=/dashboard`
+    const params = new URLSearchParams(window.location.search)
+    const next = params.get('next') || '/dashboard'
+    return `${origin}/auth/callback?next=${encodeURIComponent(next)}`
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSigningIn(true)
+
+    // Parse next param from current URL if it exists
+    const params = new URLSearchParams(window.location.search)
+    const next = params.get('next') || '/dashboard'
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -150,9 +158,9 @@ export default function LoginPage() {
       })
 
       if (error) {
-        // 檢查錯誤類型並提供更詳細的錯誤訊息
+        // ... error handling ...
         const errorMessage = error.message.toLowerCase()
-        
+        // ... (keep existing error handling logic) ...
         if (errorMessage.includes("invalid login credentials") || 
             errorMessage.includes("invalid_credentials")) {
           // 嘗試檢查帳號是否存在
@@ -177,8 +185,12 @@ export default function LoginPage() {
         }
         return
       }
-      // Redirect handled by onAuthStateChange
+      
       toast.success("登入成功")
+      // Explicitly redirect using router to handle the next param properly
+      // Although onAuthStateChange handles it, explicit redirect is safer for preventing race conditions
+      // But we need to match the behavior of onAuthStateChange in useEffect
+      // Let's rely on onAuthStateChange which we will update
     } catch (error: unknown) {
       toast.error("發生未預期的錯誤，請稍後再試")
       console.error(error)

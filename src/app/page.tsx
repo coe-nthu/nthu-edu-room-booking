@@ -15,5 +15,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect(`/auth/callback?code=${code}&type=${type}&next=${next}`)
   }
 
-  redirect('/login')
+  // 訪客直接跳轉到空間一覽頁面
+  redirect('/dashboard/spaces')
 }
