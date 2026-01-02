@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { checkUserExists } from "@/app/actions/auth"
 
 export default function LoginPage() {
@@ -298,7 +298,15 @@ export default function LoginPage() {
       </div>
 
       {/* Right/Bottom Side - Form */}
-      <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-background lg:py-12">
+      <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-background lg:py-12 relative">
+        <Button 
+            variant="ghost" 
+            className="absolute top-4 right-4 lg:top-8 lg:right-8"
+            onClick={() => router.push('/')}
+        >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            回到首頁
+        </Button>
         <div className="mx-auto grid w-full max-w-[400px] gap-6">
           <div className="flex flex-col items-center text-center space-y-2">
             <div className="relative w-16 h-16 mb-2">
