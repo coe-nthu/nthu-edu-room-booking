@@ -12,6 +12,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { 
   getUsers, 
   approveUser, 
@@ -19,7 +26,7 @@ import {
   toggleAdminRole, 
   type AdminUser 
 } from "@/app/actions/admin-users"
-import { Loader2, Trash2, Shield, ShieldOff, CheckCircle, Search } from "lucide-react"
+import { Loader2, Trash2, Shield, ShieldOff, CheckCircle, Search, Mail, Phone, Building, User as UserIcon, Calendar, Clock } from "lucide-react"
 import { format } from "date-fns"
 import {
   AlertDialog,
@@ -43,6 +50,7 @@ const USER_TYPE_LABELS: Record<string, string> = {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -155,10 +163,8 @@ export default function AdminUsersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>姓名</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>所屬單位</TableHead>
               <TableHead>職稱</TableHead>
-              <TableHead>聯絡電話</TableHead>
               <TableHead>註冊時間</TableHead>
               <TableHead>狀態</TableHead>
               <TableHead>權限</TableHead>
@@ -167,13 +173,16 @@ export default function AdminUsersPage() {
           </TableHeader>
           <TableBody>
             {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
+              <TableRow 
+                key={user.id} 
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedUser(user)}
+              >
                 <TableCell className="font-medium">
                   {user.full_name || (
                     <span className="text-muted-foreground">未填寫</span>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>
                   {user.department_name || (
                     <span className="text-muted-foreground">未設定</span>
@@ -181,16 +190,18 @@ export default function AdminUsersPage() {
                 </TableCell>
                 <TableCell>
                   {user.user_type ? (
-                    <Badge variant="outline">
-                      {USER_TYPE_LABELS[user.user_type] ?? user.user_type}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge variant="outline">
+                        {USER_TYPE_LABELS[user.user_type] ?? user.user_type}
+                      </Badge>
+                      {user.user_type === 'student' && user.supervisor_name && (
+                        <span className="text-xs text-muted-foreground">
+                          {user.supervisor_name}老師
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">未設定</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {user.phone || (
-                    <span className="text-muted-foreground">未填寫</span>
                   )}
                 </TableCell>
                 <TableCell>{format(new Date(user.created_at), 'yyyy/MM/dd HH:mm')}</TableCell>
@@ -217,12 +228,15 @@ export default function AdminUsersPage() {
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     {!user.is_approved && (
                       <Button 
                         size="sm" 
                         className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleApprove(user.id, user.email)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleApprove(user.id, user.email)
+                        }}
                         disabled={actionLoading === user.id}
                       >
                         {actionLoading === user.id ? (
@@ -239,7 +253,10 @@ export default function AdminUsersPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleToggleAdmin(user.id, user.role)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleAdmin(user.id, user.role)
+                      }}
                       disabled={actionLoading === user.id}
                       title={user.role === 'admin' ? "移除管理員權限" : "設為管理員"}
                     >
@@ -268,9 +285,12 @@ export default function AdminUsersPage() {
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogCancel onClick={(e) => e.stopPropagation()}>取消</AlertDialogCancel>
                           <AlertDialogAction 
-                            onClick={() => handleDelete(user.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(user.id)
+                            }}
                             className="bg-red-600 hover:bg-red-700"
                           >
                             刪除
@@ -285,6 +305,194 @@ export default function AdminUsersPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>使用者詳細資料</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-6">
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <UserIcon className="h-4 w-4" />
+                    姓名
+                  </div>
+                  <div className="col-span-4 sm:col-span-3 font-medium text-base">
+                    {selectedUser.full_name || "未填寫"}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                    {selectedUser.email}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    聯絡電話
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                    {selectedUser.phone || "未填寫"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <Building className="h-4 w-4" />
+                    所屬單位
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                    {selectedUser.department_name || "未設定"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <UserIcon className="h-4 w-4" />
+                    職稱
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                    <div className="flex flex-col gap-1">
+                      <span>{selectedUser.user_type ? USER_TYPE_LABELS[selectedUser.user_type] ?? selectedUser.user_type : "未設定"}</span>
+                      {selectedUser.user_type === 'student' && selectedUser.supervisor_name && (
+                        <span className="text-sm text-muted-foreground">上司老師：{selectedUser.supervisor_name}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    註冊時間
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                    {format(new Date(selectedUser.created_at), 'yyyy/MM/dd HH:mm')}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <CheckCircle className="h-4 w-4" />
+                    狀態
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                    {selectedUser.is_approved ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        已核准
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                        待審核
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="flex items-center gap-2 col-span-4 sm:col-span-1 text-sm font-medium text-muted-foreground">
+                    <Shield className="h-4 w-4" />
+                    權限
+                  </div>
+                  <div className="col-span-4 sm:col-span-3">
+                     {selectedUser.role === 'admin' ? (
+                      <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+                        管理員
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">
+                        一般用戶
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <div className="flex w-full justify-between gap-2">
+                   <div className="flex gap-2">
+                    {!selectedUser.is_approved && (
+                        <Button 
+                          className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+                          onClick={() => {
+                              handleApprove(selectedUser.id, selectedUser.email)
+                              setSelectedUser(null)
+                          }}
+                          disabled={actionLoading === selectedUser.id}
+                        >
+                          <CheckCircle className="mr-1 h-4 w-4" />
+                          核准
+                        </Button>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        className="flex-1 sm:flex-none"
+                        onClick={() => {
+                            handleToggleAdmin(selectedUser.id, selectedUser.role)
+                            setSelectedUser(null)
+                        }}
+                        disabled={actionLoading === selectedUser.id}
+                      >
+                        {selectedUser.role === 'admin' ? (
+                          <>
+                            <ShieldOff className="mr-1 h-4 w-4" />
+                            取消管理員
+                          </>
+                        ) : (
+                          <>
+                            <Shield className="mr-1 h-4 w-4" />
+                            設為管理員
+                          </>
+                        )}
+                      </Button>
+                   </div>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive"
+                          disabled={actionLoading === selectedUser.id}
+                        >
+                          <Trash2 className="mr-1 h-4 w-4" />
+                          刪除
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>確定要刪除此使用者？</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            此操作無法復原，將會刪除該使用者的所有資料（包含預約紀錄）。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => {
+                                handleDelete(selectedUser.id)
+                                setSelectedUser(null)
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            刪除
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

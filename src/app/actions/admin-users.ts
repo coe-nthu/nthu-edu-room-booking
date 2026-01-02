@@ -16,6 +16,7 @@ export type AdminUser = {
   last_sign_in_at: string | null
   full_name: string | null
   user_type: string | null
+  supervisor_name: string | null
   phone: string | null
   department_name: string | null
 }
@@ -51,7 +52,7 @@ export async function getUsers(): Promise<AdminUser[]> {
   // 2. Get all profiles
   const { data: profiles, error: profilesError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, is_approved, full_name, user_type, phone, department:departments(name)')
+    .select('id, role, is_approved, full_name, user_type, supervisor_name, phone, department:departments(name)')
   
   if (profilesError) throw profilesError
 
@@ -61,6 +62,7 @@ export async function getUsers(): Promise<AdminUser[]> {
     is_approved: boolean | null
     full_name: string | null
     user_type: string | null
+    supervisor_name: string | null
     phone: string | null
     department?: { name: string } | null
   }
@@ -77,6 +79,7 @@ export async function getUsers(): Promise<AdminUser[]> {
       last_sign_in_at: user.last_sign_in_at || null,
       full_name: profile?.full_name ?? null,
       user_type: profile?.user_type ?? null,
+      supervisor_name: profile?.supervisor_name ?? null,
       phone: profile?.phone ?? null,
       department_name: profile?.department?.name ?? null,
     }
