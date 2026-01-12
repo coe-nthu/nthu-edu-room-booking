@@ -1,5 +1,5 @@
 import { Room } from "@/utils/supabase/queries"
-import { SemesterSetting, isSameDay, isDateWithin4Months, isDateInLockedPeriod } from "@/utils/semester"
+import { SemesterSetting, isSameDay, isDateWithin4Months, isDateInLockedPeriod, isDateInSemester } from "@/utils/semester"
 
 export type ValidationResult = {
   isValid: boolean
@@ -46,25 +46,30 @@ export function validateBookingRules(
   // Rule: Unavailable periods check
   const selectedRoom = rooms.find(r => r.id === roomId)
   if (selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
-    const bookingDay = startTime.getDay()
-    const startHour = startTime.getHours()
-    const startMinute = startTime.getMinutes()
-    const endHour = endTime.getHours()
-    const endMinute = endTime.getMinutes()
-    
-    const requestStartMins = startHour * 60 + startMinute
-    const requestEndMins = endHour * 60 + endMinute
+    // Check if the booking date falls within any semester
+    const isInSemester = semesters.some(semester => isDateInSemester(startTime, semester))
 
-    for (const period of selectedRoom.unavailable_periods) {
-      if (period.day === bookingDay) {
-         const [pStartH, pStartM] = period.start.split(':').map(Number)
-         const [pEndH, pEndM] = period.end.split(':').map(Number)
-         const periodStartMins = pStartH * 60 + pStartM
-         const periodEndMins = pEndH * 60 + pEndM
+    if (isInSemester) {
+      const bookingDay = startTime.getDay()
+      const startHour = startTime.getHours()
+      const startMinute = startTime.getMinutes()
+      const endHour = endTime.getHours()
+      const endMinute = endTime.getMinutes()
+      
+      const requestStartMins = startHour * 60 + startMinute
+      const requestEndMins = endHour * 60 + endMinute
 
-         if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
-           return { isValid: false, message: `此空間 ${period.start}-${period.end} 不開放借用` }
-         }
+      for (const period of selectedRoom.unavailable_periods) {
+        if (period.day === bookingDay) {
+           const [pStartH, pStartM] = period.start.split(':').map(Number)
+           const [pEndH, pEndM] = period.end.split(':').map(Number)
+           const periodStartMins = pStartH * 60 + pStartM
+           const periodEndMins = pEndH * 60 + pEndM
+
+           if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
+             return { isValid: false, message: `此空間 ${period.start}-${period.end} 不開放借用` }
+           }
+        }
       }
     }
   }

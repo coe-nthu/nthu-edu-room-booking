@@ -5,6 +5,7 @@ import {
   isSameDay, 
   isDateWithin4Months, 
   isDateInLockedPeriod,
+  isDateInSemester,
   type SemesterSetting 
 } from '@/utils/semester'
 
@@ -104,25 +105,30 @@ export async function POST(request: Request) {
     // 4. Check unavailable periods (including lunch lock if configured)
 
     if (room.unavailable_periods && Array.isArray(room.unavailable_periods)) {
-      const periods = room.unavailable_periods as UnavailablePeriod[]
-      const bookingDay = startTime.getDay()
-      
-      // Normalize booking times to minutes from start of day
-      const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
-      const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
-      
-      for (const period of periods) {
-        if (period.day === bookingDay) {
-           const [pStartH, pStartM] = period.start.split(':').map(Number)
-           const [pEndH, pEndM] = period.end.split(':').map(Number)
-           
-           const periodStartMins = pStartH * 60 + pStartM
-           const periodEndMins = pEndH * 60 + pEndM
-           
-           // Check overlap: max(start1, start2) < min(end1, end2)
-           if (Math.max(bookingStartMins, periodStartMins) < Math.min(bookingEndMins, periodEndMins)) {
-             return NextResponse.json({ error: `此時段 (${period.start}-${period.end}) 不開放借用` }, { status: 400 })
-           }
+      // Check if the booking date falls within any semester
+      const isInSemester = semesters.some(semester => isDateInSemester(startTime, semester))
+
+      if (isInSemester) {
+        const periods = room.unavailable_periods as UnavailablePeriod[]
+        const bookingDay = startTime.getDay()
+        
+        // Normalize booking times to minutes from start of day
+        const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
+        const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
+        
+        for (const period of periods) {
+          if (period.day === bookingDay) {
+             const [pStartH, pStartM] = period.start.split(':').map(Number)
+             const [pEndH, pEndM] = period.end.split(':').map(Number)
+             
+             const periodStartMins = pStartH * 60 + pStartM
+             const periodEndMins = pEndH * 60 + pEndM
+             
+             // Check overlap: max(start1, start2) < min(end1, end2)
+             if (Math.max(bookingStartMins, periodStartMins) < Math.min(bookingEndMins, periodEndMins)) {
+               return NextResponse.json({ error: `此時段 (${period.start}-${period.end}) 不開放借用` }, { status: 400 })
+             }
+          }
         }
       }
     }

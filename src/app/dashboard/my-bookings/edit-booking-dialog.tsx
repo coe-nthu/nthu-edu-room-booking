@@ -52,7 +52,8 @@ import {
   isDateInLockedPeriod, 
   getCurrentSemester,
   getNextSemester,
-  isSameDay
+  isSameDay,
+  isDateInSemester
 } from "@/utils/semester"
 
 const bookingFormSchema = z.object({
@@ -225,22 +226,27 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     // Check unavailable periods
     const selectedRoom = rooms.find(r => r.id === values.roomId)
     if (selectedRoom?.unavailable_periods && Array.isArray(selectedRoom.unavailable_periods)) {
-      const bookingDay = startDateTime.getDay()
-      const requestStartMins = startHour * 60 + startMinute
-      const requestEndMins = endHour * 60 + endMinute
+      // Check if the booking date falls within any semester
+      const isInSemester = semesters.some(semester => isDateInSemester(startDateTime, semester))
 
-      for (const period of selectedRoom.unavailable_periods) {
-        if (period.day === bookingDay) {
-           const [pStartH, pStartM] = period.start.split(':').map(Number)
-           const [pEndH, pEndM] = period.end.split(':').map(Number)
-           const periodStartMins = pStartH * 60 + pStartM
-           const periodEndMins = pEndH * 60 + pEndM
+      if (isInSemester) {
+        const bookingDay = startDateTime.getDay()
+        const requestStartMins = startHour * 60 + startMinute
+        const requestEndMins = endHour * 60 + endMinute
 
-           if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
-             toast.error(`此空間 ${period.start}-${period.end} 不開放借用`)
-             setIsLoading(false)
-             return
-           }
+        for (const period of selectedRoom.unavailable_periods) {
+          if (period.day === bookingDay) {
+             const [pStartH, pStartM] = period.start.split(':').map(Number)
+             const [pEndH, pEndM] = period.end.split(':').map(Number)
+             const periodStartMins = pStartH * 60 + pStartM
+             const periodEndMins = pEndH * 60 + pEndM
+
+             if (Math.max(requestStartMins, periodStartMins) < Math.min(requestEndMins, periodEndMins)) {
+               toast.error(`此空間 ${period.start}-${period.end} 不開放借用`)
+               setIsLoading(false)
+               return
+             }
+          }
         }
       }
     }
