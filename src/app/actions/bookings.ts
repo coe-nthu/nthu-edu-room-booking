@@ -75,7 +75,12 @@ export async function getRoomBookings(roomId: string, excludeBookingId?: string)
     } else {
       // For regular users
       if (booking.status === 'approved') {
-        title = '已預約'
+        if (user) {
+          const userName = booking.profiles?.full_name || booking.profiles?.username || '未知使用者'
+          title = `${userName} 預約`
+        } else {
+          title = '已預約'
+        }
       } else if (booking.status === 'pending') {
         title = '審核中'
       }
