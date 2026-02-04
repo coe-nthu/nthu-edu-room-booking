@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { createServiceClient } from "@/utils/supabase/service"
 import { revalidatePath } from "next/cache"
 
 export type MaintenanceRequest = {
@@ -40,14 +41,13 @@ export async function createMaintenanceRequest(data: CreateMaintenanceRequestInp
   
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) {
-    throw new Error("請先登入")
-  }
+  // Use service client if not logged in to bypass RLS
+  const db = user ? supabase : createServiceClient()
 
-  const { error } = await supabase
+  const { error } = await db
     .from('maintenance_requests')
     .insert({
-      user_id: user.id,
+      user_id: user?.id || null,
       applicant_name: data.applicant_name,
       affiliation: data.affiliation,
       unit: data.unit,
@@ -74,10 +74,6 @@ export async function uploadMaintenanceFile(formData: FormData): Promise<string>
   
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) {
-    throw new Error("請先登入")
-  }
-
   const file = formData.get('file') as File
   if (!file) {
     throw new Error("請選擇檔案")
@@ -85,9 +81,14 @@ export async function uploadMaintenanceFile(formData: FormData): Promise<string>
 
   // Generate unique filename
   const fileExt = file.name.split('.').pop()
-  const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+  // If no user, use 'anonymous' folder
+  const folder = user?.id || 'anonymous'
+  const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
-  const { error } = await supabase.storage
+  // Use service client if not logged in to bypass RLS
+  const storageClient = user ? supabase : createServiceClient()
+
+  const { error } = await storageClient.storage
     .from('maintenance-files')
     .upload(fileName, file)
 
@@ -96,7 +97,7 @@ export async function uploadMaintenanceFile(formData: FormData): Promise<string>
     throw new Error("檔案上傳失敗")
   }
 
-  const { data: { publicUrl } } = supabase.storage
+  const { data: { publicUrl } } = storageClient.storage
     .from('maintenance-files')
     .getPublicUrl(fileName)
 

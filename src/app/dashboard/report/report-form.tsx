@@ -139,7 +139,7 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
       toast.success("回報表單已送出，我們會盡快處理")
       form.reset()
       setUploadedFiles([])
-      router.push('/dashboard')
+      router.push('/dashboard/report/records')
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "提交失敗"
       toast.error(message)

@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
     '/reset-password',
     '/dashboard/spaces', // Allow viewing spaces
     '/dashboard/rules',   // Allow viewing rules
+    '/dashboard/report', // Allow access to report form and records
     '/dashboard/report/records' // Allow viewing maintenance records
   ]
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
