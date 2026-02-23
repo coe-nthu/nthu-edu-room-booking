@@ -43,13 +43,15 @@ export function validateBookingRules(
     }
 
     // Check lunch break restriction (12:00 - 13:00) for non-admins
-    const startMins = startTime.getHours() * 60 + startTime.getMinutes()
-    const endMins = endTime.getHours() * 60 + endTime.getMinutes()
-    const lunchStart = 12 * 60
-    const lunchEnd = 13 * 60
+    if (!roomToBook?.allow_noon) {
+      const startMins = startTime.getHours() * 60 + startTime.getMinutes()
+      const endMins = endTime.getHours() * 60 + endTime.getMinutes()
+      const lunchStart = 12 * 60
+      const lunchEnd = 13 * 60
 
-    if (Math.max(startMins, lunchStart) < Math.min(endMins, lunchEnd)) {
-      return { isValid: false, message: "中午 12:00 - 13:00 不開放借用" }
+      if (Math.max(startMins, lunchStart) < Math.min(endMins, lunchEnd)) {
+        return { isValid: false, message: "中午 12:00 - 13:00 不開放借用" }
+      }
     }
   }
 

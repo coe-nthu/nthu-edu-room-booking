@@ -15,6 +15,7 @@ export type Room = {
   room_type: string | null
   image_url: string | null
   is_active: boolean | null
+  allow_noon: boolean | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

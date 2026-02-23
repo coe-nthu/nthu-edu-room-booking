@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     // Fetch room info first (need room_type for semester lock check)
     const { data: room } = await supabase
       .from('rooms')
-      .select('unavailable_periods, room_type, is_active')
+      .select('unavailable_periods, room_type, is_active, allow_noon')
       .eq('id', body.roomId)
       .single()
       
@@ -102,13 +102,15 @@ export async function POST(request: Request) {
       }
 
       // Check lunch break lock (12:00 - 13:00)
-      const startMins = startTime.getHours() * 60 + startTime.getMinutes()
-      const endMins = endTime.getHours() * 60 + endTime.getMinutes()
-      const lunchStart = 12 * 60
-      const lunchEnd = 13 * 60
+      if (!room.allow_noon) {
+        const startMins = startTime.getHours() * 60 + startTime.getMinutes()
+        const endMins = endTime.getHours() * 60 + endTime.getMinutes()
+        const lunchStart = 12 * 60
+        const lunchEnd = 13 * 60
 
-      if (Math.max(startMins, lunchStart) < Math.min(endMins, lunchEnd)) {
-        return NextResponse.json({ error: '中午 12:00 - 13:00 不開放借用' }, { status: 400 })
+        if (Math.max(startMins, lunchStart) < Math.min(endMins, lunchEnd)) {
+          return NextResponse.json({ error: '中午 12:00 - 13:00 不開放借用' }, { status: 400 })
+        }
       }
     }
 

@@ -30,6 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Switch } from "@/components/ui/switch"
 
 type RoomFormDialogProps = {
   mode: "create" | "edit"
@@ -68,6 +69,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       ? room.unavailable_periods 
       : []
   )
+  const [allowNoon, setAllowNoon] = useState(room?.allow_noon || false)
   
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -105,6 +107,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
           ? room.unavailable_periods
           : []
       )
+      setAllowNoon(room.allow_noon || false)
     } else if (open && mode === "create") {
       // Reset to defaults for create mode
       setName("")
@@ -117,6 +120,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       setEquipment("")
       setImageUrl("")
       setUnavailablePeriods([])
+      setAllowNoon(false)
     }
   }, [open, room, mode, roomTypeOptions])
 
@@ -156,6 +160,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         equipment: equipmentArray,
         unavailable_periods: unavailablePeriods,
         image_url: imageUrl || null, // Ensure empty string becomes null
+        allow_noon: allowNoon,
       }
 
       if (mode === "create") {
@@ -346,6 +351,11 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
                 onChange={(e) => setEquipment(e.target.value)} 
                 placeholder="投影機, 白板, 麥克風 (以逗號分隔)"
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+               <Switch id="allow-noon" checked={allowNoon} onCheckedChange={setAllowNoon} />
+               <Label htmlFor="allow-noon">開放中午借用 (12:00 - 13:00)</Label>
             </div>
 
             <div className="pt-2">
