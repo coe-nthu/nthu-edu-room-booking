@@ -65,7 +65,7 @@ export function AppFooter() {
                 <ul className="space-y-2 text-sm">
                   <li>
                     <Link
-                      href="/dashboard/rules"
+                      href="https://ec.site.nthu.edu.tw/p/406-1584-296032,r11504.php?Lang=zh-tw"
                       className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
                     >
                       借用管理辦法/規範

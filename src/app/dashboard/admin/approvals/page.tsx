@@ -17,24 +17,27 @@ export default async function AdminApprovalsPage({
   
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard')
-  }
-
   const params = await searchParams
   const status = (params.status as string) || 'all'
   const search = (params.search as string) || ''
 
-  const bookings = await getAdminBookings({
-    status: status as 'pending' | 'approved' | 'rejected' | 'all',
-    search: search || undefined,
-  })
+  const [profileResponse, bookings] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single(),
+    getAdminBookings({
+      status: status as 'pending' | 'approved' | 'rejected' | 'all',
+      search: search || undefined,
+    })
+  ])
+
+  const profile = profileResponse.data
+
+  if (profile?.role !== 'admin') {
+    redirect('/dashboard')
+  }
 
   return (
     <div className="space-y-6">
