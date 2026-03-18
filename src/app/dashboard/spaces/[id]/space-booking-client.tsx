@@ -6,6 +6,7 @@ import { SemesterSetting } from "@/utils/semester"
 import { BookingWidget } from "./booking-widget"
 import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
 import { RoomDetailImage } from "./room-detail-image"
+import { UnavailablePeriodDialog } from "./unavailable-period-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -47,6 +48,9 @@ export function SpaceBookingClient({ room, semesters, isAdmin }: SpaceBookingCli
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Layers className="h-4 w-4" />
                             <span className="text-sm">位於 {room.floor}</span>
+                        </div>
+                        <div className="pt-2">
+                             <UnavailablePeriodDialog room={room} />
                         </div>
                     </div>
                 </div>
