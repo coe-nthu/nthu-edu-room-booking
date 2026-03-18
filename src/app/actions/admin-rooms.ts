@@ -39,6 +39,7 @@ export async function createRoom(data: Partial<Room>) {
       image_url: data.image_url,
       is_active: data.is_active ?? true,
       allow_noon: data.allow_noon ?? false,
+      admin_only: data.admin_only ?? false,
     })
 
   if (error) throw new Error(error.message)
@@ -62,6 +63,7 @@ export async function updateRoom(id: string, data: Partial<Room>) {
       unavailable_periods: data.unavailable_periods,
       image_url: data.image_url,
       allow_noon: data.allow_noon,
+      admin_only: data.admin_only,
     })
     .eq('id', id)
 

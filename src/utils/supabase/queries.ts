@@ -16,9 +16,10 @@ export type Room = {
   image_url: string | null
   is_active: boolean | null
   allow_noon: boolean | null
+  admin_only: boolean | null
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function getRooms(includeInactive = false): Promise<Room[]> {
   const supabase = await createClient()
   let query = supabase

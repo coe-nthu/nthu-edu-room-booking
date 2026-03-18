@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     // Fetch room info first (need room_type for semester lock check)
     const { data: room } = await supabase
       .from('rooms')
-      .select('unavailable_periods, room_type, is_active, allow_noon')
+      .select('unavailable_periods, room_type, is_active, allow_noon, admin_only')
       .eq('id', body.roomId)
       .single()
       
@@ -69,6 +69,10 @@ export async function POST(request: Request) {
 
     if (room.is_active === false && !isAdmin) {
       return NextResponse.json({ error: '此空間已停用' }, { status: 400 })
+    }
+
+    if (room.admin_only && !isAdmin) {
+      return NextResponse.json({ error: '此空間僅限管理員借用' }, { status: 403 })
     }
 
     const isMeetingRoom = room.room_type === "Meeting"

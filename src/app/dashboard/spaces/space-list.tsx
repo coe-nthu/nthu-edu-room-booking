@@ -143,13 +143,18 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
                             src={room.image_url} 
                             alt={room.name} 
                         />
-                         {room.room_type && (
-                            <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                            {room.admin_only && (
+                                <Badge variant="destructive" className="bg-red-500/90 hover:bg-red-500 backdrop-blur-sm shadow-sm">
+                                    僅管理員
+                                </Badge>
+                            )}
+                            {room.room_type && (
                                 <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm shadow-sm">
                                     {room.room_type}
                                 </Badge>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                     <CardContent className="px-4 py-1 flex-1">
                         <div className="flex items-start justify-between gap-2">

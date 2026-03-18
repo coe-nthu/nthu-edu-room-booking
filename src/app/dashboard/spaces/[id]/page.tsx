@@ -41,6 +41,11 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
     notFound()
   }
 
+  // Redirect if room is admin only and user is not admin
+  if (room.admin_only && !isAdmin) {
+    notFound()
+  }
+
   return (
     <SpaceBookingClient 
       room={room} 

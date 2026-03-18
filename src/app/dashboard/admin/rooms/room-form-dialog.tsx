@@ -40,6 +40,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { RoomApproverEditor, ApproverEntry, UserOption } from "./room-approver-editor"
 import { getRoomApprovers, setRoomApprovers, getUsersForApproverSelection } from "@/app/actions/admin-approvers"
@@ -83,6 +84,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       : []
   )
   const [allowNoon, setAllowNoon] = useState(room?.allow_noon || false)
+  const [adminOnly, setAdminOnly] = useState(room?.admin_only || false)
 
   // Approver State
   const [approvers, setApprovers] = useState<ApproverEntry[]>([])
@@ -158,6 +160,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
           : []
       )
       setAllowNoon(room.allow_noon || false)
+      setAdminOnly(room.admin_only || false)
     } else if (open && mode === "create") {
       // Reset to defaults for create mode
       setName("")
@@ -171,6 +174,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       setImageUrl("")
       setUnavailablePeriods([])
       setAllowNoon(false)
+      setAdminOnly(false)
     }
   }, [open, room, mode, roomTypeOptions])
 
@@ -189,6 +193,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         imageUrl,
         unavailablePeriods,
         allowNoon,
+        adminOnly,
         approvers
       }))
     }
@@ -208,6 +213,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         imageUrl,
         unavailablePeriods,
         allowNoon,
+        adminOnly,
         approvers
       })
       
@@ -256,6 +262,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         unavailable_periods: unavailablePeriods,
         image_url: imageUrl || null, // Ensure empty string becomes null
         allow_noon: allowNoon,
+        admin_only: adminOnly,
       }
 
       if (mode === "create") {
@@ -463,6 +470,11 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
             <div className="flex items-center space-x-2">
                <Switch id="allow-noon" checked={allowNoon} onCheckedChange={setAllowNoon} />
                <Label htmlFor="allow-noon">開放中午借用 (12:00 - 13:00)</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+               <Checkbox id="admin-only" checked={adminOnly} onCheckedChange={(checked) => setAdminOnly(checked as boolean)} />
+               <Label htmlFor="admin-only">僅管理員可借用 (只有管理員能在空間頁面找到此空間)</Label>
             </div>
 
             {mode === "edit" && (

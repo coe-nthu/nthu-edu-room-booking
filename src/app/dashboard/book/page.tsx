@@ -1,5 +1,6 @@
 import { getRooms } from "@/utils/supabase/queries"
 import { BookingView } from "./booking-view"
+import { createClient } from "@/utils/supabase/server"
 
 export default async function BookPage({
   searchParams,
@@ -7,7 +8,26 @@ export default async function BookPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { roomId } = await searchParams
-  const rooms = await getRooms()
+  let rooms = await getRooms()
+
+  const supabase = await createClient()
+  // Check if user is admin
+  let isAdmin = false
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile?.role === 'admin') {
+      isAdmin = true
+    }
+  }
+
+  if (!isAdmin) {
+    rooms = rooms.filter(room => !room.admin_only)
+  }
 
   return (
     <div className="space-y-6">
