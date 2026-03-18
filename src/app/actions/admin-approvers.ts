@@ -413,13 +413,24 @@ export async function getApproverBookings(): Promise<{
   }
 
   const result: ApproverBookingResult[] = mySteps.map(step => {
-    const booking = bookings.find((b: { id: string }) => b.id === step.booking_id)
-    if (!booking) return null
+    const b = bookings.find((b: { id: string }) => b.id === step.booking_id) as Record<string, unknown> | undefined
+    if (!b) return null
     const stepsForBooking = (allStepsData || []).filter(
       (s: { booking_id: string }) => s.booking_id === step.booking_id
     )
+
+    // Ensure room and user are always objects so the frontend won't crash on null references
+    const safeRoom = Array.isArray(b.room) ? b.room[0] : b.room
+    const safeUser = Array.isArray(b.user) ? b.user[0] : b.user
+
+    const safeBooking = {
+      ...b,
+      room: safeRoom || { name: '未知空間', room_code: '' },
+      user: safeUser || { full_name: '未知使用者', student_id: '', department: null },
+    }
+
     return {
-      booking: booking as unknown as ApproverBookingResult['booking'],
+      booking: safeBooking as unknown as ApproverBookingResult['booking'],
       step: step as unknown as ApprovalStep,
       allSteps: stepsForBooking as unknown as ApprovalStep[],
     }

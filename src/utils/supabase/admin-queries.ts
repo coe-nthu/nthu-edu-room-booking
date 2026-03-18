@@ -131,10 +131,13 @@ export async function getAdminBookings(
   if (filters?.search) {
     const searchTerm = filters.search.toLowerCase()
     bookings = bookings.filter((booking) => {
-      const userName = booking.user.full_name?.toLowerCase() || ''
-      const studentId = booking.user.student_id?.toLowerCase() || ''
-      const roomName = booking.room.name?.toLowerCase() || ''
-      const roomCode = booking.room.room_code?.toLowerCase() || ''
+      const safeRoom = Array.isArray(booking.room) ? booking.room[0] : booking.room
+      const safeUser = Array.isArray(booking.user) ? booking.user[0] : booking.user
+
+      const userName = safeUser?.full_name?.toLowerCase() || ''
+      const studentId = safeUser?.student_id?.toLowerCase() || ''
+      const roomName = safeRoom?.name?.toLowerCase() || ''
+      const roomCode = safeRoom?.room_code?.toLowerCase() || ''
       
       return (
         userName.includes(searchTerm) ||
@@ -144,6 +147,17 @@ export async function getAdminBookings(
       )
     })
   }
+
+  // Ensure ALL returns have valid room and user objects to prevent frontend crashes
+  bookings = bookings.map(booking => {
+    const safeRoom = Array.isArray(booking.room) ? booking.room[0] : booking.room
+    const safeUser = Array.isArray(booking.user) ? booking.user[0] : booking.user
+    return {
+      ...booking,
+      room: safeRoom || { name: '未知空間', room_code: '' },
+      user: safeUser || { full_name: '未知使用者', student_id: '', username: '', department: null }
+    }
+  })
 
   // Sort: pending first, then by start_time descending (newest time first)
   bookings.sort((a, b) => {
