@@ -128,10 +128,12 @@ export async function PUT(
 
       if (isInSemester) {
         const periods = room.unavailable_periods as UnavailablePeriod[]
-        const bookingDay = startTime.getDay()
+        const twStart = new Date(startTime.getTime() + 8 * 60 * 60 * 1000)
+        const twEnd = new Date(endTime.getTime() + 8 * 60 * 60 * 1000)
+        const bookingDay = twStart.getUTCDay()
         
-        const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
-        const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
+        const bookingStartMins = twStart.getUTCHours() * 60 + twStart.getUTCMinutes()
+        const bookingEndMins = twEnd.getUTCHours() * 60 + twEnd.getUTCMinutes()
         
         for (const period of periods) {
           if (period.day === bookingDay) {

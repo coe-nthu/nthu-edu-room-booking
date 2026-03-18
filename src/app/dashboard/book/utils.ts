@@ -44,8 +44,10 @@ export function validateBookingRules(
 
     // Check lunch break restriction (12:00 - 13:00) for non-admins
     if (!roomToBook?.allow_noon) {
-      const startMins = startTime.getHours() * 60 + startTime.getMinutes()
-      const endMins = endTime.getHours() * 60 + endTime.getMinutes()
+      const twStart = new Date(startTime.getTime() + 8 * 60 * 60 * 1000)
+      const twEnd = new Date(endTime.getTime() + 8 * 60 * 60 * 1000)
+      const startMins = twStart.getUTCHours() * 60 + twStart.getUTCMinutes()
+      const endMins = twEnd.getUTCHours() * 60 + twEnd.getUTCMinutes()
       const lunchStart = 12 * 60
       const lunchEnd = 13 * 60
 
@@ -62,11 +64,13 @@ export function validateBookingRules(
     const isInSemester = semesters.some(semester => isDateInSemester(startTime, semester))
 
     if (isInSemester) {
-      const bookingDay = startTime.getDay()
-      const startHour = startTime.getHours()
-      const startMinute = startTime.getMinutes()
-      const endHour = endTime.getHours()
-      const endMinute = endTime.getMinutes()
+      const twStart = new Date(startTime.getTime() + 8 * 60 * 60 * 1000)
+      const twEnd = new Date(endTime.getTime() + 8 * 60 * 60 * 1000)
+      const bookingDay = twStart.getUTCDay()
+      const startHour = twStart.getUTCHours()
+      const startMinute = twStart.getUTCMinutes()
+      const endHour = twEnd.getUTCHours()
+      const endMinute = twEnd.getUTCMinutes()
       
       const requestStartMins = startHour * 60 + startMinute
       const requestEndMins = endHour * 60 + endMinute

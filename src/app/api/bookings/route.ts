@@ -104,8 +104,10 @@ export async function POST(request: Request) {
 
       // Check lunch break lock (12:00 - 13:00)
       if (!room.allow_noon) {
-        const startMins = startTime.getHours() * 60 + startTime.getMinutes()
-        const endMins = endTime.getHours() * 60 + endTime.getMinutes()
+        const twStart = new Date(startTime.getTime() + 8 * 60 * 60 * 1000)
+        const twEnd = new Date(endTime.getTime() + 8 * 60 * 60 * 1000)
+        const startMins = twStart.getUTCHours() * 60 + twStart.getUTCMinutes()
+        const endMins = twEnd.getUTCHours() * 60 + twEnd.getUTCMinutes()
         const lunchStart = 12 * 60
         const lunchEnd = 13 * 60
 
@@ -123,11 +125,13 @@ export async function POST(request: Request) {
 
       if (isInSemester) {
         const periods = room.unavailable_periods as UnavailablePeriod[]
-        const bookingDay = startTime.getDay()
+        const twStart = new Date(startTime.getTime() + 8 * 60 * 60 * 1000)
+        const twEnd = new Date(endTime.getTime() + 8 * 60 * 60 * 1000)
+        const bookingDay = twStart.getUTCDay()
         
         // Normalize booking times to minutes from start of day
-        const bookingStartMins = startTime.getHours() * 60 + startTime.getMinutes()
-        const bookingEndMins = endTime.getHours() * 60 + endTime.getMinutes()
+        const bookingStartMins = twStart.getUTCHours() * 60 + twStart.getUTCMinutes()
+        const bookingEndMins = twEnd.getUTCHours() * 60 + twEnd.getUTCMinutes()
         
         for (const period of periods) {
           if (period.day === bookingDay) {

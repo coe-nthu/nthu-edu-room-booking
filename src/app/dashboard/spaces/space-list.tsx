@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useDeferredValue } from "react"
 import { Room } from "@/utils/supabase/queries"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ type SpaceListProps = {
 
 export function SpaceList({ initialRooms }: SpaceListProps) {
   const [searchTerm, setSearchTerm] = useState("")
+  const deferredSearchTerm = useDeferredValue(searchTerm)
   const [selectedFloor, setSelectedFloor] = useState<string>("all")
   const [selectedCapacity, setSelectedCapacity] = useState<string>("all")
   const [selectedType, setSelectedType] = useState<string>("all")
@@ -41,7 +42,7 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
     return initialRooms.filter(room => {
       // Search term
       const searchContent = `${room.name} ${room.room_code || ''} ${room.room_type || ''}`.toLowerCase()
-      if (searchTerm && !searchContent.includes(searchTerm.toLowerCase())) {
+      if (deferredSearchTerm && !searchContent.includes(deferredSearchTerm.toLowerCase())) {
         return false
       }
 
@@ -68,7 +69,7 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
 
       return true
     })
-  }, [initialRooms, searchTerm, selectedFloor, selectedCapacity, selectedType])
+  }, [initialRooms, deferredSearchTerm, selectedFloor, selectedCapacity, selectedType])
 
   return (
     <div className="space-y-6">
