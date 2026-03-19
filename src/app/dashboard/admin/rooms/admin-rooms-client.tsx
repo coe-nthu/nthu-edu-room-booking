@@ -355,8 +355,8 @@ function AdminRoomImage({ src, alt }: { src: string | null, alt: string }) {
             src={finalSrc} 
             alt={alt}
             fill
+            sizes="100px" // Only used as a tiny thumbnail in a table
             className="object-cover"
-            unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />
     )

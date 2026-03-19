@@ -4,10 +4,16 @@ import { createClient } from "@/utils/supabase/server"
 
 export default async function SpacesPage() {
   const supabase = await createClient()
+
+  // Fetch rooms and user auth state concurrently
+  const [roomsData, { data: { user } }] = await Promise.all([
+    getRooms(),
+    supabase.auth.getUser()
+  ])
   
-  // Check if user is admin
+  let rooms = roomsData
   let isAdmin = false
-  const { data: { user } } = await supabase.auth.getUser()
+
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
@@ -18,8 +24,6 @@ export default async function SpacesPage() {
       isAdmin = true
     }
   }
-
-  let rooms = await getRooms()
   
   // Filter out admin_only rooms if user is not admin
   if (!isAdmin) {

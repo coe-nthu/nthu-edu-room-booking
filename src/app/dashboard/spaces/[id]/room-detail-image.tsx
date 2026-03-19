@@ -12,9 +12,9 @@ export function RoomDetailImage({ src, alt }: { src: string | null, alt: string 
             src={finalSrc}
             alt={alt}
             fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover"
             priority
-            unoptimized={src?.includes('supabase.co')}
             onError={() => setError(true)}
         />
     )

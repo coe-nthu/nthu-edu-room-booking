@@ -135,13 +135,14 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
       {/* Room Grid */}
       <div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredRooms.map(room => (
+            {filteredRooms.map((room, index) => (
                 <Link key={room.id} href={`/dashboard/spaces/${room.id}`} className="block group">
                 <Card className="h-full overflow-hidden flex flex-col group-hover:shadow-md transition-shadow">
                     <div className="relative aspect-video bg-muted">
                         <RoomImage 
                             src={room.image_url} 
                             alt={room.name} 
+                            priority={index < 4}
                         />
                         <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                             {room.admin_only && (
@@ -199,7 +200,7 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
 }
 
 // Helper component to handle image fallback
-function RoomImage({ src, alt }: { src: string | null, alt: string }) {
+function RoomImage({ src, alt, priority = false }: { src: string | null, alt: string, priority?: boolean }) {
     const [error, setError] = useState(false)
     const finalSrc = (src && !error) ? src : "/login_cover.jpg"
     
@@ -208,8 +209,9 @@ function RoomImage({ src, alt }: { src: string | null, alt: string }) {
             src={finalSrc}
             alt={alt}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
             className="object-cover transition-transform group-hover:scale-105"
-            unoptimized={src?.includes('supabase.co')}
+            priority={priority}
             onError={() => setError(true)}
         />
     )

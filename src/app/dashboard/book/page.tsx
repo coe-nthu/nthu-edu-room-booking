@@ -8,12 +8,17 @@ export default async function BookPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { roomId } = await searchParams
-  let rooms = await getRooms()
-
   const supabase = await createClient()
-  // Check if user is admin
+
+  // Fetch rooms and user auth state concurrently
+  const [roomsData, { data: { user } }] = await Promise.all([
+    getRooms(),
+    supabase.auth.getUser()
+  ])
+
+  let rooms = roomsData
   let isAdmin = false
-  const { data: { user } } = await supabase.auth.getUser()
+
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')

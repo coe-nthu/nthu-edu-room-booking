@@ -49,21 +49,47 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && !isPublicPath) {
-    // Fetch profile to check approval status and role
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('is_approved, role')
-      .eq('id', user.id)
-      .single()
+    let isApproved = false
+    let isAdmin = false
+    let statusSource = 'none'
 
-    if (error) {
-        console.error("Middleware profile fetch error:", error)
+    const cachedStatus = request.cookies.get('user_auth_status')?.value
+    if (cachedStatus) {
+      try {
+        const parsed = JSON.parse(cachedStatus)
+        if (parsed.userId === user.id) {
+          isApproved = parsed.isApproved
+          isAdmin = parsed.isAdmin
+          statusSource = 'cookie'
+        }
+      } catch (e) {
+        console.error("Cookie parse error", e)
+      }
     }
 
-    // Admins bypass approval check
-    // Check explicitly if role is 'admin'
-    const isAdmin = profile?.role === 'admin'
-    const isApproved = isAdmin || (profile?.is_approved ?? false)
+    if (statusSource === 'none') {
+      // Fetch profile to check approval status and role if not cached
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('is_approved, role')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+          console.error("Middleware profile fetch error:", error)
+      }
+
+      isAdmin = profile?.role === 'admin'
+      isApproved = isAdmin || (profile?.is_approved ?? false)
+
+      // Cache this status in cookie for 5 minutes to avoid DB hit on every request
+      supabaseResponse.cookies.set('user_auth_status', JSON.stringify({ userId: user.id, isApproved, isAdmin }), {
+        maxAge: 300, 
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/'
+      })
+    }
     
     const isPendingPage = request.nextUrl.pathname === '/approval-pending'
 
