@@ -25,13 +25,13 @@ export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalTo
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isRefreshing, setIsRefreshing] = useState(false)
-  
-  const currentStatus = searchParams.get('status') || 'all'
+
+  const currentStatus = searchParams.get('status') || 'pending'
   const currentSearch = searchParams.get('search') || ''
 
   const updateSearchParams = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
-    if (value && value !== 'all') {
+    if (value && value !== 'pending') {
       params.set(key, value)
     } else {
       params.delete(key)
@@ -67,7 +67,7 @@ export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalTo
           className="pl-8"
         />
       </div>
-      
+
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
@@ -76,8 +76,8 @@ export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalTo
           disabled={isRefreshing}
           className="bg-white hover:bg-gray-50 border-gray-300"
         >
-          <RefreshCw 
-            className={`h-4 w-4 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} 
+          <RefreshCw
+            className={`h-4 w-4 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`}
           />
         </Button>
         <div className="w-full">

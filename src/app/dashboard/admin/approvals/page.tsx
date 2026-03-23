@@ -39,7 +39,7 @@ export default async function AdminApprovalsPage({
   }
 
   const params = await searchParams
-  const status = (params.status as string) || 'all'
+  const status = (params.status as string) || 'pending'
   const search = (params.search as string) || ''
 
   return (
@@ -48,8 +48,8 @@ export default async function AdminApprovalsPage({
         <h2 className="text-2xl font-bold tracking-tight">預約管理</h2>
       </div>
 
-      <Card>
-        <CardContent>
+      <Card className="border-none shadow-none md:border md:shadow-sm">
+        <CardContent className="p-0 md:p-3">
           <Suspense fallback={
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
