@@ -30,8 +30,8 @@ type BookingViewProps = {
 
 export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
   // Ensure initialRoomId exists in the rooms list, otherwise fallback to first room
-  const defaultRoomId = (initialRoomId && rooms.some(r => r.id === initialRoomId)) 
-    ? initialRoomId 
+  const defaultRoomId = (initialRoomId && rooms.some(r => r.id === initialRoomId))
+    ? initialRoomId
     : (rooms[0]?.id || "")
 
   const [selectedRoomId, setSelectedRoomId] = useState<string>(defaultRoomId)
@@ -49,21 +49,25 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BookingForm 
-            rooms={rooms} 
+          <BookingForm
+            rooms={rooms}
             selectedRoomId={selectedRoomId}
             onRoomChange={setSelectedRoomId}
             prefillSlot={selectedSlot}
           />
         </CardContent>
       </Card>
-      
+
       <div className="space-y-4">
-        <h3 className="text-lg font-bold">{rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形</h3>
-        <RoomTimetable 
-          roomId={selectedRoomId} 
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold">{rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形</h3>
+          <span className="text-sm text-red-500/90 font-medium">※ 淺紅色區域為禁止借用時段</span>
+        </div>
+        <RoomTimetable
+          roomId={selectedRoomId}
           onSelectSlot={setSelectedSlot}
           selectedSlot={selectedSlot}
+          unavailablePeriods={rooms.find(r => r.id === selectedRoomId)?.unavailable_periods}
         />
       </div>
     </div>
