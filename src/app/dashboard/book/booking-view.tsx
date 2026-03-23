@@ -1,10 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Room } from "@/utils/supabase/queries"
-import { BookingForm } from "./booking-form"
-import { RoomTimetable } from "./room-timetable"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import dynamic from "next/dynamic"
+
+const BookingForm = dynamic(() => import("./booking-form").then(mod => mod.BookingForm), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+      載入表單中...
+    </div>
+  )
+})
+
+const RoomTimetable = dynamic(() => import("./room-timetable").then(mod => mod.RoomTimetable), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+      載入課表中...
+    </div>
+  )
+})
 
 type BookingViewProps = {
   rooms: Room[]
@@ -19,33 +36,6 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
 
   const [selectedRoomId, setSelectedRoomId] = useState<string>(defaultRoomId)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
-  const [isMounted, setIsMounted] = useState(false)
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true)
-  }, [])
-
-  // Prevent hydration mismatch by not rendering the complex form until mounted
-  // Ideally we could fix the underlying ID generation issue, but this is a safe workaround
-  // for client-heavy interactive components.
-  if (!isMounted) {
-    return (
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>填寫預約申請</CardTitle>
-            <CardDescription>載入中...</CardDescription>
-          </CardHeader>
-          <CardContent>
-             <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                載入表單中...
-             </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -70,11 +60,11 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
       
       <div className="space-y-4">
         <h3 className="text-lg font-bold">{rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形</h3>
-                <RoomTimetable 
-                    roomId={selectedRoomId} 
-                    onSelectSlot={setSelectedSlot}
-                    selectedSlot={selectedSlot}
-                />
+        <RoomTimetable 
+          roomId={selectedRoomId} 
+          onSelectSlot={setSelectedSlot}
+          selectedSlot={selectedSlot}
+        />
       </div>
     </div>
   )
