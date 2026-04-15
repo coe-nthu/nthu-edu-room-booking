@@ -20,10 +20,9 @@ type RoomTimetableProps = {
   selectedSlot?: { start: Date; end: Date } | null
   excludeBookingId?: string
   focusDate?: Date
-  unavailablePeriods?: { day: number; start: string; end: string }[] | null
 }
 
-export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate, unavailablePeriods }: RoomTimetableProps) {
+export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
@@ -57,7 +56,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
   const calendarEvents: EventInput[] = events.map((event) => {
     let backgroundColor = '#3b82f6' // Blue-500
     let borderColor = '#2563eb' // Blue-600
-
+    
     if (event.status === 'approved') {
       backgroundColor = '#ef4444' // Red-500
       borderColor = '#dc2626' // Red-600
@@ -96,20 +95,6 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
     })
   }
 
-  // Add unavailable periods as background events
-  if (unavailablePeriods) {
-    unavailablePeriods.forEach((period, idx) => {
-      calendarEvents.push({
-        id: `unavailable-${idx}`,
-        startTime: period.start,
-        endTime: period.end,
-        daysOfWeek: [period.day],
-        display: 'background',
-        backgroundColor: '#fcc9c9ff', // red-100/200 for light red
-      })
-    })
-  }
-
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     const now = new Date()
     const start = selectInfo.start
@@ -126,16 +111,16 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
     // Subtract 1ms from end to handle midnight correctly (e.g. 2024-01-01 14:00 to 2024-01-02 00:00 should be valid)
     const adjustedEnd = new Date(end.getTime() - 1)
     if (!isSameDay(start, adjustedEnd)) {
-      toast.error("無法跨日預約")
-      selectInfo.view.calendar.unselect()
-      return
+       toast.error("無法跨日預約")
+       selectInfo.view.calendar.unselect()
+       return
     }
 
     // Only allow selection in future (double check)
     if (start >= now) {
       onSelectSlot?.({ start, end })
     }
-
+    
     // Unselect the selection highlight as we will show the 'selected-slot' event instead
     const calendarApi = selectInfo.view.calendar
     calendarApi.unselect()
@@ -148,7 +133,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
-
+      
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -186,10 +171,10 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           minute: '2-digit',
           hour12: false,
         }}
-        dayHeaderFormat={{
-          month: 'numeric',
-          day: 'numeric',
-          weekday: 'narrow'
+        dayHeaderFormat={{ 
+          month: 'numeric', 
+          day: 'numeric', 
+          weekday: 'narrow' 
         }}
         allDaySlot={false}
         nowIndicator={true}

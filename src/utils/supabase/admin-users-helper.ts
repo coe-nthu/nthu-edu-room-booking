@@ -1,8 +1,9 @@
 import { createServiceClient } from "./service"
+import { User } from "@supabase/supabase-js"
 
 export async function getAllAuthUsers() {
   const supabaseAdmin = createServiceClient()
-  let allUsers: any[] = []
+  let allUsers: User[] = []
   let page = 1
   const perPage = 1000
   

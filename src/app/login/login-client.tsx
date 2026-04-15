@@ -25,7 +25,7 @@ type Department = {
   name: string
 }
 
-export default function LoginClient() {
+export default function LoginClient({ initialDepartments = [] }: { initialDepartments?: Department[] }) {
   const supabase = createClient()
   const router = useRouter()
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -58,15 +58,7 @@ export default function LoginClient() {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [departments, setDepartments] = useState<Department[]>([])
-
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      const { data } = await supabase.from('departments').select('id, name').order('id')
-      if (data) setDepartments(data)
-    }
-    fetchDepartments()
-  }, [supabase])
+  const [departments, setDepartments] = useState<Department[]>(initialDepartments)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
