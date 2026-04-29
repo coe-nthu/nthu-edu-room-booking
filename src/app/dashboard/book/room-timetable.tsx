@@ -20,9 +20,10 @@ type RoomTimetableProps = {
   selectedSlot?: { start: Date; end: Date } | null
   excludeBookingId?: string
   focusDate?: Date
+  unavailablePeriods?: { day: number; start: string; end: string }[] | null
 }
 
-export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate }: RoomTimetableProps) {
+export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate, unavailablePeriods }: RoomTimetableProps) {
   const [events, setEvents] = useState<TimetableEvent[]>([])
   const [loading, setLoading] = useState(false)
   const calendarRef = useRef<FullCalendar>(null)
