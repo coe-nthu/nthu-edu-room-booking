@@ -1,5 +1,5 @@
 import { getAdminBookings } from "@/utils/supabase/admin-queries"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { AdminApprovalsClient } from "./admin-approvals-client"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"

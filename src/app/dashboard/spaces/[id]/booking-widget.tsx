@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { format } from "date-fns"
-import { zhTW } from "date-fns/locale"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -33,7 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { CalendarIcon } from "lucide-react"
+
 import { 
   isDateWithin4Months, 
   isDateInLockedPeriod 

@@ -197,6 +197,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         approvers
       }))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isLoadingApprovers]) // Only run when dialog opens or approvers finish loading
 
   const handleOpenChange = (newOpen: boolean) => {

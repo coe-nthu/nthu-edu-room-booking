@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ReportDetailDialog } from "./report-detail-dialog"
-import { Eye, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
 type ReportListProps = {
   initialRequests: MaintenanceRequest[]

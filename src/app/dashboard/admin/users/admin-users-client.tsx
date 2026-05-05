@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   Table,
   TableBody,
@@ -26,7 +26,7 @@ import {
   toggleAdminRole,
   type AdminUser
 } from "@/app/actions/admin-users"
-import { Loader2, Trash2, Shield, ShieldOff, CheckCircle, Search, Mail, Phone, Building, User as UserIcon, Calendar, Clock } from "lucide-react"
+import { Loader2, Trash2, Shield, ShieldOff, CheckCircle, Search, Mail, Phone, Building, User as UserIcon, Calendar } from "lucide-react"
 import { format } from "date-fns"
 import {
   AlertDialog,

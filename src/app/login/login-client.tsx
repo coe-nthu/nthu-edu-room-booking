@@ -58,7 +58,7 @@ export default function LoginClient({ initialDepartments = [] }: { initialDepart
   const [showSignUpPassword, setShowSignUpPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments)
+  const [departments] = useState<Department[]>(initialDepartments)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -125,9 +125,7 @@ export default function LoginClient({ initialDepartments = [] }: { initialDepart
     e.preventDefault()
     setIsSigningIn(true)
 
-    // Parse next param from current URL if it exists
-    const params = new URLSearchParams(window.location.search)
-    const next = params.get('next') || '/dashboard'
+
 
     try {
       const { error } = await supabase.auth.signInWithPassword({

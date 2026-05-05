@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, PlusCircle, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn, ShieldCheck } from "lucide-react"
+import { Calendar, Home, Inbox, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn, ShieldCheck } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,

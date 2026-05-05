@@ -1,6 +1,6 @@
 import { getUserBookings, getRooms } from "@/utils/supabase/queries"
 import { getSemesterSettings } from "@/app/actions/admin-settings"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { BookingList } from "./booking-list"
 import { createClient } from "@/utils/supabase/server"
 

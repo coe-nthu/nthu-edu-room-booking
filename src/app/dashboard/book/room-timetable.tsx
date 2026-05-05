@@ -96,6 +96,22 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
     })
   }
 
+  // Add unavailable periods as background events
+  if (unavailablePeriods && unavailablePeriods.length > 0) {
+    unavailablePeriods.forEach((period, index) => {
+      calendarEvents.push({
+        id: `unavailable-${index}`,
+        groupId: 'unavailable',
+        daysOfWeek: [period.day],
+        startTime: period.start,
+        endTime: period.end,
+        display: 'background',
+        backgroundColor: '#fee2e2', // Light red (Tailwind red-100)
+        classNames: ['unavailable-period-event'],
+      })
+    })
+  }
+
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     const now = new Date()
     const start = selectInfo.start
