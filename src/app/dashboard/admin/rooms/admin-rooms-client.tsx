@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Room } from "@/utils/supabase/queries"
+import { compareFloors, compareRoomsByFloor } from "@/lib/rooms"
 import {
   Table,
   TableBody,
@@ -60,7 +61,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
             .map((room) => room.floor)
             .filter((f): f is string => !!f && f.trim().length > 0),
         ),
-      ).sort(),
+      ).sort(compareFloors),
     [initialRooms],
   )
 
@@ -111,7 +112,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
       }
 
       return true
-    })
+    }).sort(compareRoomsByFloor)
   }, [rooms, searchTerm, filterFloor, filterRoomType, filterStatus])
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配

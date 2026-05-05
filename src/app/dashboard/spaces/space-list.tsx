@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useDeferredValue } from "react"
 import { Room } from "@/utils/supabase/queries"
+import { compareFloors, compareRoomsByFloor } from "@/lib/rooms"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -23,12 +24,9 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
     const [selectedType, setSelectedType] = useState<string>("all")
 
     // Derive unique floors
-
-    // Derive unique floors
     const floors = useMemo(() => {
         const uniqueFloors = Array.from(new Set(initialRooms.map(r => r.floor).filter(Boolean)))
-        // Sort floors naturally (B1, 1F, 2F, etc.) - simplified sort for now
-        return uniqueFloors.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
+        return uniqueFloors.sort(compareFloors)
     }, [initialRooms])
 
     // Derive unique room types
@@ -68,7 +66,7 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
             }
 
             return true
-        })
+        }).sort(compareRoomsByFloor)
     }, [initialRooms, deferredSearchTerm, selectedFloor, selectedCapacity, selectedType])
 
     return (
