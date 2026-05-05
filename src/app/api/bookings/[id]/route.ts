@@ -165,9 +165,7 @@ export async function PUT(
       .select('id')
       .eq('room_id', body.roomId)
       .neq('id', id)
-      .neq('status', 'cancelled')
-      .neq('status', 'rejected')
-      .neq('status', 'cancelled_by_user')
+      .in('status', ['pending', 'approved'])
       .filter('start_time', 'lt', body.endTime)
       .filter('end_time', 'gt', body.startTime)
     
@@ -208,4 +206,3 @@ export async function PUT(
       return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 })
   }
 }
-

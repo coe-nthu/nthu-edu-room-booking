@@ -1,7 +1,23 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const publicPaths = [
+  '/login',
+  '/auth',
+  '/reset-password',
+  '/dashboard/spaces',
+  '/dashboard/rules',
+  '/dashboard/report',
+  '/dashboard/report/records',
+]
+
 export async function updateSession(request: NextRequest) {
+  const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
+
+  if (isPublicPath || request.nextUrl.pathname === '/') {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -31,24 +47,12 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Define paths that are publicly accessible (no login required)
-  const publicPaths = [
-    '/login', 
-    '/auth', 
-    '/reset-password',
-    '/dashboard/spaces', // Allow viewing spaces
-    '/dashboard/rules',   // Allow viewing rules
-    '/dashboard/report', // Allow access to report form and records
-    '/dashboard/report/records' // Allow viewing maintenance records
-  ]
-  const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
-
   // If user is not logged in and trying to access a protected route
-  if (!user && !isPublicPath && request.nextUrl.pathname !== '/') {
+  if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && !isPublicPath) {
+  if (user) {
     let isApproved = false
     let isAdmin = false
     let statusSource = 'none'

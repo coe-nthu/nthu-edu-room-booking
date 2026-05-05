@@ -1,20 +1,26 @@
-import { getRooms } from "@/utils/supabase/queries"
+import { cookies } from "next/headers"
+import { getRoomCards } from "@/utils/supabase/queries"
 import { SpaceList } from "./space-list"
 import { createClient } from "@/utils/supabase/server"
+import { hasSupabaseAuthCookie } from "@/utils/supabase/auth-cookies"
 
 export default async function SpacesPage() {
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const shouldCheckUser = hasSupabaseAuthCookie(cookieStore)
 
-  // Fetch rooms and user auth state concurrently
-  const [roomsData, { data: { user } }] = await Promise.all([
-    getRooms(),
-    supabase.auth.getUser()
+  const [roomsData, userResult] = await Promise.all([
+    getRoomCards(),
+    shouldCheckUser
+      ? createClient().then((supabase) => supabase.auth.getUser())
+      : Promise.resolve(null),
   ])
   
   let rooms = roomsData
   let isAdmin = false
+  const user = userResult?.data.user
 
   if (user) {
+    const supabase = await createClient()
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -40,4 +46,3 @@ export default async function SpacesPage() {
     </div>
   )
 }
-

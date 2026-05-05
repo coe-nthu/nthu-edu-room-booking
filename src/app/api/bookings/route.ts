@@ -159,9 +159,7 @@ export async function POST(request: Request) {
       .from('bookings')
       .select('id')
       .eq('room_id', body.roomId)
-      .neq('status', 'cancelled')
-      .neq('status', 'rejected')
-      .neq('status', 'cancelled_by_user') // Added check for new status
+      .in('status', ['pending', 'approved'])
       .filter('start_time', 'lt', body.endTime)
       .filter('end_time', 'gt', body.startTime)
     

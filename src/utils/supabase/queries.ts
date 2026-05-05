@@ -1,5 +1,32 @@
 import { createClient } from '@/utils/supabase/server'
 
+export const ROOM_CARD_COLUMNS = `
+  id,
+  name,
+  room_code,
+  capacity,
+  floor,
+  room_type,
+  image_url,
+  is_active,
+  admin_only
+`
+
+export const ROOM_DETAIL_COLUMNS = `
+  id,
+  name,
+  room_code,
+  capacity,
+  unavailable_periods,
+  equipment,
+  floor,
+  room_type,
+  image_url,
+  is_active,
+  allow_noon,
+  admin_only
+`
+
 export type Room = {
   id: string
   name: string
@@ -24,7 +51,7 @@ export async function getRooms(includeInactive = false): Promise<Room[]> {
   const supabase = await createClient()
   let query = supabase
     .from('rooms')
-    .select('*')
+    .select(ROOM_DETAIL_COLUMNS)
     .order('name')
   
   if (!includeInactive) {
@@ -41,11 +68,32 @@ export async function getRooms(includeInactive = false): Promise<Room[]> {
   return data as Room[]
 }
 
+export async function getRoomCards(includeInactive = false): Promise<Room[]> {
+  const supabase = await createClient()
+  let query = supabase
+    .from('rooms')
+    .select(ROOM_CARD_COLUMNS)
+    .order('name')
+
+  if (!includeInactive) {
+    query = query.eq('is_active', true)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching room cards:', error)
+    return []
+  }
+
+  return data as Room[]
+}
+
 export async function getRoomById(id: string): Promise<Room | null> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('rooms')
-    .select('*')
+    .select(ROOM_DETAIL_COLUMNS)
     .eq('id', id)
     .single()
   

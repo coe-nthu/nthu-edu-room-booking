@@ -1,11 +1,13 @@
+import { cookies } from "next/headers"
 import { createClient } from "@/utils/supabase/server"
+import { hasSupabaseAuthCookie } from "@/utils/supabase/auth-cookies"
 import { ReportForm } from "./report-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 
 export default async function ReportPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const cookieStore = await cookies()
+  const shouldCheckUser = hasSupabaseAuthCookie(cookieStore)
 
   let defaultValues = {
     applicant_name: "",
@@ -14,18 +16,23 @@ export default async function ReportPage() {
   }
 
   // Pre-fill user info if logged in
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, email, department')
-      .eq('id', user.id)
-      .single()
+  if (shouldCheckUser) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (profile) {
-      defaultValues = {
-        applicant_name: profile.full_name || "",
-        email: profile.email || user.email || "",
-        unit: profile.department || "",
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, department')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        defaultValues = {
+          applicant_name: profile.full_name || "",
+          email: profile.email || user.email || "",
+          unit: profile.department || "",
+        }
       }
     }
   }
@@ -69,4 +76,3 @@ export default async function ReportPage() {
     </div>
   )
 }
-

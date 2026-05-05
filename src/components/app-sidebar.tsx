@@ -20,7 +20,7 @@ import { createClient } from "@/utils/supabase/client"
 import { useRouter, usePathname } from "next/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -104,7 +104,7 @@ export function AppSidebar() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isApprover, setIsApprover] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const pathname = usePathname()
   const { setOpenMobile } = useSidebar()
@@ -121,6 +121,8 @@ export function AppSidebar() {
   }, [])
 
   useEffect(() => {
+    let isCancelled = false
+
     const checkAdmin = async () => {
       if (!user) {
         setIsAdmin(false)
@@ -128,25 +130,30 @@ export function AppSidebar() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      
-      setIsAdmin(profile?.role === 'admin')
+      const [profileResult, approverResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('room_approvers')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1),
+      ])
 
-      // Check if user is an approver for any room
-      const { data: approverRoles } = await supabase
-        .from('room_approvers')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
+      if (isCancelled) return
       
-      setIsApprover(!!approverRoles && approverRoles.length > 0)
+      setIsAdmin(profileResult.data?.role === 'admin')
+      setIsApprover(!!approverResult.data && approverResult.data.length > 0)
     }
 
     checkAdmin()
+
+    return () => {
+      isCancelled = true
+    }
   }, [user, supabase])
 
   const handleSignOut = async () => {
