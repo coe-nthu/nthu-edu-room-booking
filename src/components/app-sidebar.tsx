@@ -174,7 +174,7 @@ export function AppSidebar() {
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-semibold">竹師教育學院</span>
-            <span className="truncate text-xs">空間借用系統</span>
+            <span className="truncate text-xs">空間借用與修繕系統</span>
           </div>
         </div>
       </SidebarHeader>

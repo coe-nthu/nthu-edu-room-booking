@@ -46,7 +46,7 @@ function SignupSuccessContent() {
                 註冊成功！
               </h1>
               <p className="text-lg sm:text-xl opacity-90">
-                竹師教育學院空間借用系統
+                竹師教育學院空間借用與修繕系統
               </p>
             </div>
           </div>
@@ -183,4 +183,3 @@ export default function SignupSuccessPage() {
     </Suspense>
   )
 }
-

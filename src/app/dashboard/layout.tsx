@@ -14,9 +14,9 @@ export default async function DashboardLayout({
         {/* Mobile-only sticky header with hamburger menu */}
         <div className="sticky top-0 z-40 flex items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3 md:hidden">
           <SidebarTrigger className="size-8" />
-          <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" />
-            <span className="font-semibold text-sm">竹師教育學院空間借用系統</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain flex-shrink-0" />
+            <span className="truncate font-semibold text-sm">竹師教育學院空間借用與修繕系統</span>
           </div>
         </div>
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
@@ -26,4 +26,3 @@ export default async function DashboardLayout({
     </SidebarProvider>
   )
 }
-

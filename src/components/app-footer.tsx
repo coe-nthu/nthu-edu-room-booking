@@ -154,7 +154,7 @@ export function AppFooter() {
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <h3 className="text-lg font-semibold">關於系統</h3>
                   <p>
-                    本系統提供竹師教育學院新教育大樓空間借用服務，讓您輕鬆管理空間預約申請。
+                    本系統提供竹師教育學院新教育大樓空間借用與修繕通報服務，讓您輕鬆管理空間預約申請與修繕需求。
                   </p>
                 </div>
               </div>
@@ -188,4 +188,3 @@ export function AppFooter() {
     </footer>
   )
 }
-

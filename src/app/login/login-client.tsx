@@ -267,7 +267,7 @@ export default function LoginClient({ initialDepartments = [] }: { initialDepart
         <div className="absolute inset-0 bg-black/10" /> {/* Subtle overlay */}
         <div className="absolute bottom-6 left-6 lg:bottom-10 lg:left-10 z-20 text-white p-4">
             <h2 className="text-2xl lg:text-3xl font-bold mb-1 lg:mb-2">竹師教育學院</h2>
-            <p className="text-base lg:text-lg opacity-90">空間借用系統</p>
+            <p className="text-base lg:text-lg opacity-90">空間借用與修繕系統</p>
         </div>
       </div>
 

@@ -106,14 +106,14 @@ export async function approveUser(userId: string, email: string) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
       await resend.emails.send({
-        from: '竹師教育學院空間借用系統 <no-reply@will-cheng.com>', // Update this with your verified domain
+        from: '竹師教育學院空間借用與修繕系統 <no-reply@will-cheng.com>', // Update this with your verified domain
         to: email,
         subject: '您的帳號已通過審核',
         html: `
           <h2>帳號審核通過通知</h2>
           <p>您好：</p>
-          <p>您的空間借用系統帳號已通過管理員審核。</p>
-          <p>您現在可以登入系統進行空間借用了。</p>
+          <p>您的空間借用與修繕系統帳號已通過管理員審核。</p>
+          <p>您現在可以登入系統進行空間借用與修繕通報了。</p>
           <p>
             <a href="${appUrl}/login" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">前往登入</a>
           </p>
@@ -175,4 +175,3 @@ export async function toggleAdminRole(userId: string, currentRole: string) {
   if (error) throw error
   revalidatePath('/dashboard/admin/users')
 }
-

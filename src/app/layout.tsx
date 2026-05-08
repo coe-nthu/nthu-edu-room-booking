@@ -17,25 +17,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "竹師教育學院空間借用系統",
-  description: "竹師教育學院空間借用系統 - 線上預約教室、會議室等各類空間，輕鬆管理您的借用申請",
+  title: "竹師教育學院空間借用與修繕系統",
+  description: "竹師教育學院空間借用與修繕系統 - 線上預約教室、會議室等各類空間，並通報與追蹤空間修繕需求",
   openGraph: {
-    title: "竹師教育學院空間借用系統",
-    description: "竹師教育學院空間借用系統 - 線上預約教室、會議室等各類空間，輕鬆管理您的借用申請",
+    title: "竹師教育學院空間借用與修繕系統",
+    description: "竹師教育學院空間借用與修繕系統 - 線上預約教室、會議室等各類空間，並通報與追蹤空間修繕需求",
     type: "website",
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "竹師教育學院空間借用系統",
+        alt: "竹師教育學院空間借用與修繕系統",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "竹師教育學院空間借用系統",
-    description: "竹師教育學院空間借用系統 - 線上預約教室、會議室等各類空間，輕鬆管理您的借用申請",
+    title: "竹師教育學院空間借用與修繕系統",
+    description: "竹師教育學院空間借用與修繕系統 - 線上預約教室、會議室等各類空間，並通報與追蹤空間修繕需求",
     images: ["/logo.png"],
   },
 };
