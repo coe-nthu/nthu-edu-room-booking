@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -55,7 +55,9 @@ const reportFormSchema = z.object({
 type ReportFormProps = {
   defaultValues?: {
     applicant_name: string
+    affiliation?: "student" | "teacher" | "staff"
     email: string
+    phone: string
     unit: string
   }
 }
@@ -72,18 +74,50 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const hasShownAutofillToast = useRef(false)
   
   const form = useForm<z.infer<typeof reportFormSchema>>({
     resolver: zodResolver(reportFormSchema),
     defaultValues: {
       applicant_name: defaultValues?.applicant_name || "",
+      affiliation: defaultValues?.affiliation,
       email: defaultValues?.email || "",
       unit: defaultValues?.unit || "",
-      phone: "",
+      phone: defaultValues?.phone || "",
       location: "",
       description: "",
     },
   })
+
+  useEffect(() => {
+    if (hasShownAutofillToast.current || !defaultValues) return
+
+    const hasAutofilledInfo = [
+      defaultValues.applicant_name,
+      defaultValues.affiliation,
+      defaultValues.email,
+      defaultValues.phone,
+      defaultValues.unit,
+    ].some(Boolean)
+
+    if (hasAutofilledInfo) {
+      toast.info("已自動帶入您的基本資料，送出前仍可自行修改")
+      hasShownAutofillToast.current = true
+    }
+  }, [defaultValues])
+
+  useEffect(() => {
+    if (!defaultValues) return
+
+    form.setValue("applicant_name", defaultValues.applicant_name || "")
+    form.setValue("email", defaultValues.email || "")
+    form.setValue("phone", defaultValues.phone || "")
+    form.setValue("unit", defaultValues.unit || "")
+
+    if (defaultValues.affiliation) {
+      form.setValue("affiliation", defaultValues.affiliation)
+    }
+  }, [defaultValues, form])
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -404,4 +438,3 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
     </Form>
   )
 }
-

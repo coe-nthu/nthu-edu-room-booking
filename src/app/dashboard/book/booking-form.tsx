@@ -301,7 +301,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
           )}
         />
 
-        <div className="flex gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="startTime"
@@ -310,7 +310,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                 <FormLabel>開始時間</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full min-w-40">
                       <SelectValue placeholder="開始" />
                     </SelectTrigger>
                   </FormControl>
@@ -335,7 +335,7 @@ export function BookingForm({ rooms, selectedRoomId, onRoomChange, prefillSlot, 
                 <FormLabel>結束時間</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full min-w-40">
                       <SelectValue placeholder="結束" />
                     </SelectTrigger>
                   </FormControl>

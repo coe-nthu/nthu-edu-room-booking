@@ -296,37 +296,37 @@ export function BookingWidget({ room, semesters, isAdmin, selectedSlot, onChange
              </div>
              
              {/* Time Section */}
-             <div className="grid grid-cols-2">
-                <div className="p-3 border-r border-neutral-200 dark:border-neutral-800">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">開始</div>
-                    <Select 
-                        value={startTimeStr} 
-                        onValueChange={(v) => updateTime('start', v)}
-                        disabled={!selectedSlot}
-                    >
-                        <SelectTrigger className="border-0 p-0 h-auto font-medium focus:ring-0 shadow-none">
+             <div className="grid grid-cols-1">
+                <Select
+                    value={startTimeStr}
+                    onValueChange={(v) => updateTime('start', v)}
+                    disabled={!selectedSlot}
+                >
+                    <SelectTrigger className="min-h-[72px] w-full min-w-0 rounded-none border-0 border-b border-neutral-200 p-3 text-left shadow-none focus-visible:ring-0 dark:border-neutral-800 [&>svg]:mt-5">
+                        <span className="flex min-w-0 flex-1 flex-col items-start gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">開始</span>
                             <SelectValue placeholder="--" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">結束</div>
-                     <Select 
-                        value={endTimeStr} 
-                        onValueChange={(v) => updateTime('end', v)}
-                        disabled={!selectedSlot}
-                    >
-                        <SelectTrigger className="border-0 p-0 h-auto font-medium focus:ring-0 shadow-none">
+                        </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={endTimeStr}
+                    onValueChange={(v) => updateTime('end', v)}
+                    disabled={!selectedSlot}
+                >
+                    <SelectTrigger className="min-h-[72px] w-full min-w-0 rounded-none border-0 p-3 text-left shadow-none focus-visible:ring-0 [&>svg]:mt-5">
+                        <span className="flex min-w-0 flex-1 flex-col items-start gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">結束</span>
                             <SelectValue placeholder="--" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                        </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                </Select>
              </div>
           </div>
           

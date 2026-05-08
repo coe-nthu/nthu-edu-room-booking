@@ -61,7 +61,7 @@ export function BookingView({ rooms, initialRoomId }: BookingViewProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold">{rooms.find(r => r.id === selectedRoomId)?.name} - 目前預約情形</h3>
-          <span className="text-sm text-red-500/90 font-medium">※ 淺紅色區域為禁止借用時段</span>
+          <span className="text-sm text-slate-500 font-medium">※ 淺灰色區域為禁止借用時段</span>
         </div>
         <RoomTimetable
           roomId={selectedRoomId}

@@ -1,17 +1,39 @@
 import { cookies } from "next/headers"
 import { createClient } from "@/utils/supabase/server"
+import { createServiceClient } from "@/utils/supabase/service"
 import { hasSupabaseAuthCookie } from "@/utils/supabase/auth-cookies"
 import { ReportForm } from "./report-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 
+type ReportDefaultValues = {
+  applicant_name: string
+  affiliation?: "student" | "teacher" | "staff"
+  email: string
+  phone: string
+  unit: string
+}
+
+function normalizeAffiliation(userType: string | null | undefined): ReportDefaultValues["affiliation"] {
+  if (userType === "student" || userType === "teacher" || userType === "staff") {
+    return userType
+  }
+
+  if (userType === "assistant") {
+    return "staff"
+  }
+
+  return undefined
+}
+
 export default async function ReportPage() {
   const cookieStore = await cookies()
   const shouldCheckUser = hasSupabaseAuthCookie(cookieStore)
 
-  let defaultValues = {
+  let defaultValues: ReportDefaultValues = {
     applicant_name: "",
     email: "",
+    phone: "",
     unit: "",
   }
 
@@ -21,18 +43,35 @@ export default async function ReportPage() {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (user) {
-      const { data: profile } = await supabase
+      const supabaseAdmin = createServiceClient()
+      const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('full_name, email, department')
+        .select('full_name, phone, user_type, department_id')
         .eq('id', user.id)
         .single()
 
       if (profile) {
+        let unit = ""
+
+        if (profile.department_id) {
+          const { data: department } = await supabaseAdmin
+            .from('departments')
+            .select('name')
+            .eq('id', profile.department_id)
+            .single()
+
+          unit = department?.name || ""
+        }
+
         defaultValues = {
           applicant_name: profile.full_name || "",
-          email: profile.email || user.email || "",
-          unit: profile.department || "",
+          affiliation: normalizeAffiliation(profile.user_type),
+          email: user.email || "",
+          phone: profile.phone || "",
+          unit,
         }
+      } else {
+        defaultValues.email = user.email || ""
       }
     }
   }

@@ -49,7 +49,7 @@ export function SpaceBookingClient({ room, semesters, isAdmin }: SpaceBookingCli
                                 <span className="text-sm">位於 {room.floor}</span>
                             </div>
                             <div className="pt-2">
-                                <span className="text-sm text-red-500/90 font-medium whitespace-nowrap">※ 淺紅色區域為禁止借用時段</span>
+                                <span className="text-sm text-slate-500 font-medium whitespace-nowrap">※ 淺灰色區域為禁止借用時段</span>
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { useUser } from "@/hooks/use-user"
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { getDepartmentOptions, type DepartmentOption } from "@/app/actions/departments"
 
 const USER_TYPE_LABELS: Record<string, string> = {
   teacher: "教師",
@@ -26,14 +27,9 @@ type Profile = {
   user_type: string | null
 }
 
-type Department = {
-  id: number
-  name: string
-}
-
 export default function ProfilePage() {
   const { user, loading } = useUser()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
   const [profile, setProfile] = useState<Profile>({
@@ -42,7 +38,7 @@ export default function ProfilePage() {
     department_id: null,
     user_type: "",
   })
-  const [departments, setDepartments] = useState<Department[]>([])
+  const [departments, setDepartments] = useState<DepartmentOption[]>([])
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -57,16 +53,13 @@ export default function ProfilePage() {
       if (!user) return
 
       setIsLoadingProfile(true)
-      const [{ data, error }, { data: deptData, error: deptError }] = await Promise.all([
+      const [{ data, error }, deptData] = await Promise.all([
         supabase
         .from("profiles")
         .select("full_name, phone, department_id, user_type")
         .eq("id", user.id)
         .single(),
-        supabase
-          .from("departments")
-          .select("id, name")
-          .order("id"),
+        getDepartmentOptions(),
       ])
 
       if (error) {
@@ -84,11 +77,10 @@ export default function ProfilePage() {
         })
       }
 
-      if (deptError) {
-        console.error(deptError)
-        toast.error("載入單位資料時發生錯誤")
-      } else if (deptData) {
+      if (deptData.length > 0) {
         setDepartments(deptData)
+      } else {
+        toast.error("載入單位資料時發生錯誤")
       }
 
       setIsLoadingProfile(false)
@@ -244,5 +236,4 @@ export default function ProfilePage() {
     </div>
   )
 }
-
 
