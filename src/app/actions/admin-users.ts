@@ -5,8 +5,6 @@ import { createClient } from "@/utils/supabase/server"
 import { Resend } from 'resend'
 import { revalidatePath } from "next/cache"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export type AdminUser = {
   id: string
   email: string
@@ -101,8 +99,10 @@ export async function approveUser(userId: string, email: string) {
   if (error) throw error
 
   // Send notification email
-  if (process.env.RESEND_API_KEY) {
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (resendApiKey) {
     try {
+      const resend = new Resend(resendApiKey)
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
       await resend.emails.send({
