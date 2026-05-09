@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import { hasSupabaseAuthCookie } from "@/utils/supabase/auth-cookies"
+import { hasSupabaseAuthCookie } from "@/utils/supabase/auth-cookies";
 
 describe("hasSupabaseAuthCookie", () => {
   it("detects Supabase auth-token cookies", () => {
@@ -8,8 +8,8 @@ describe("hasSupabaseAuthCookie", () => {
       hasSupabaseAuthCookie({
         getAll: () => [{ name: "sb-project-auth-token" }],
       }),
-    ).toBe(true)
-  })
+    ).toBe(true);
+  });
 
   it("ignores unrelated Supabase and app cookies", () => {
     expect(
@@ -19,6 +19,6 @@ describe("hasSupabaseAuthCookie", () => {
           { name: "user_auth_status" },
         ],
       }),
-    ).toBe(false)
-  })
-})
+    ).toBe(false);
+  });
+});

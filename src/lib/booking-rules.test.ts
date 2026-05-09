@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { generateTimeSlots, validateBookingRules } from "@/lib/booking-rules"
-import type { Room } from "@/utils/supabase/queries"
-import type { SemesterSetting } from "@/utils/semester"
+import { generateTimeSlots, validateBookingRules } from "@/lib/booking-rules";
+import type { Room } from "@/utils/supabase/queries";
+import type { SemesterSetting } from "@/utils/semester";
 
 const semesters: SemesterSetting[] = [
   {
@@ -23,7 +23,7 @@ const semesters: SemesterSetting[] = [
     created_at: "2026-01-01",
     updated_at: "2026-01-01",
   },
-]
+];
 
 function room(overrides: Partial<Room> = {}): Room {
   return {
@@ -39,18 +39,18 @@ function room(overrides: Partial<Room> = {}): Room {
     is_active: overrides.is_active ?? true,
     allow_noon: overrides.allow_noon ?? false,
     admin_only: overrides.admin_only ?? false,
-  }
+  };
 }
 
 describe("validateBookingRules", () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-05-09T09:00:00+08:00"))
-  })
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-09T09:00:00+08:00"));
+  });
 
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   it("rejects multi-day bookings", () => {
     const result = validateBookingRules(
@@ -60,13 +60,13 @@ describe("validateBookingRules", () => {
       [room()],
       semesters,
       false,
-    )
+    );
 
     expect(result).toEqual({
       isValid: false,
       message: "每次預約僅能借用單日，不能跨日連續借用",
-    })
-  })
+    });
+  });
 
   it("requires regular users to book at least seven days ahead", () => {
     const result = validateBookingRules(
@@ -76,10 +76,10 @@ describe("validateBookingRules", () => {
       [room()],
       semesters,
       false,
-    )
+    );
 
-    expect(result.message).toBe("一般使用者需於 7 天前申請")
-  })
+    expect(result.message).toBe("一般使用者需於 7 天前申請");
+  });
 
   it("rejects regular-user bookings outside the four-month window", () => {
     const result = validateBookingRules(
@@ -89,10 +89,10 @@ describe("validateBookingRules", () => {
       [room()],
       semesters,
       false,
-    )
+    );
 
-    expect(result.message).toBe("一般使用者僅能借用未來 4 個月內的日期")
-  })
+    expect(result.message).toBe("一般使用者僅能借用未來 4 個月內的日期");
+  });
 
   it("locks next-semester classroom bookings while allowing meeting rooms", () => {
     const classroomResult = validateBookingRules(
@@ -102,7 +102,7 @@ describe("validateBookingRules", () => {
       [room({ id: "classroom", room_type: "Classroom" })],
       semesters,
       false,
-    )
+    );
     const meetingResult = validateBookingRules(
       new Date("2026-09-01T09:00:00+08:00"),
       new Date("2026-09-01T10:00:00+08:00"),
@@ -110,11 +110,11 @@ describe("validateBookingRules", () => {
       [room({ id: "meeting", room_type: "Meeting" })],
       semesters,
       false,
-    )
+    );
 
-    expect(classroomResult.message).toBe("下學期課表尚未確認，暫不開放預約")
-    expect(meetingResult.isValid).toBe(true)
-  })
+    expect(classroomResult.message).toBe("下學期課表尚未確認，暫不開放預約");
+    expect(meetingResult.isValid).toBe(true);
+  });
 
   it("blocks lunch-time bookings unless the room allows noon", () => {
     const blocked = validateBookingRules(
@@ -124,7 +124,7 @@ describe("validateBookingRules", () => {
       [room({ allow_noon: false })],
       semesters,
       false,
-    )
+    );
     const allowed = validateBookingRules(
       new Date("2026-05-20T12:30:00+08:00"),
       new Date("2026-05-20T13:30:00+08:00"),
@@ -132,11 +132,11 @@ describe("validateBookingRules", () => {
       [room({ allow_noon: true })],
       semesters,
       false,
-    )
+    );
 
-    expect(blocked.message).toBe("中午 12:00 - 13:00 不開放借用")
-    expect(allowed.isValid).toBe(true)
-  })
+    expect(blocked.message).toBe("中午 12:00 - 13:00 不開放借用");
+    expect(allowed.isValid).toBe(true);
+  });
 
   it("rejects unavailable-period overlaps inside a semester", () => {
     const result = validateBookingRules(
@@ -150,13 +150,13 @@ describe("validateBookingRules", () => {
       ],
       semesters,
       false,
-    )
+    );
 
     expect(result).toEqual({
       isValid: false,
       message: "此空間 10:00-11:00 不開放借用",
-    })
-  })
+    });
+  });
 
   it("lets admins bypass regular-user date and lunch restrictions", () => {
     const result = validateBookingRules(
@@ -166,19 +166,19 @@ describe("validateBookingRules", () => {
       [room({ allow_noon: false })],
       semesters,
       true,
-    )
+    );
 
-    expect(result.isValid).toBe(true)
-  })
-})
+    expect(result.isValid).toBe(true);
+  });
+});
 
 describe("generateTimeSlots", () => {
   it("generates 30-minute slots from 08:00 through 22:00", () => {
-    const slots = generateTimeSlots()
+    const slots = generateTimeSlots();
 
-    expect(slots).toHaveLength(29)
-    expect(slots[0]).toBe("08:00")
-    expect(slots.at(-1)).toBe("22:00")
-    expect(slots.slice(0, 4)).toEqual(["08:00", "08:30", "09:00", "09:30"])
-  })
-})
+    expect(slots).toHaveLength(29);
+    expect(slots[0]).toBe("08:00");
+    expect(slots.at(-1)).toBe("22:00");
+    expect(slots.slice(0, 4)).toEqual(["08:00", "08:30", "09:00", "09:30"]);
+  });
+});

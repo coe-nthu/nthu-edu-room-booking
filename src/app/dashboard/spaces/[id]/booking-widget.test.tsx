@@ -1,32 +1,34 @@
-import { render, screen, waitFor } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { BookingWidget } from "@/app/dashboard/spaces/[id]/booking-widget"
-import type { Room } from "@/utils/supabase/queries"
-import type { SemesterSetting } from "@/utils/semester"
+import { BookingWidget } from "@/app/dashboard/spaces/[id]/booking-widget";
+import type { Room } from "@/utils/supabase/queries";
+import type { SemesterSetting } from "@/utils/semester";
 
-const { pushMock, useUserMock, toastErrorMock, toastSuccessMock } = vi.hoisted(() => ({
-  pushMock: vi.fn(),
-  useUserMock: vi.fn(),
-  toastErrorMock: vi.fn(),
-  toastSuccessMock: vi.fn(),
-}))
+const { pushMock, useUserMock, toastErrorMock, toastSuccessMock } = vi.hoisted(
+  () => ({
+    pushMock: vi.fn(),
+    useUserMock: vi.fn(),
+    toastErrorMock: vi.fn(),
+    toastSuccessMock: vi.fn(),
+  }),
+);
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
-}))
+}));
 
 vi.mock("@/hooks/use-user", () => ({
   useUser: useUserMock,
-}))
+}));
 
 vi.mock("sonner", () => ({
   toast: {
     error: toastErrorMock,
     success: toastSuccessMock,
   },
-}))
+}));
 
 function room(overrides: Partial<Room> = {}): Room {
   return {
@@ -42,25 +44,25 @@ function room(overrides: Partial<Room> = {}): Room {
     is_active: overrides.is_active ?? true,
     allow_noon: overrides.allow_noon ?? true,
     admin_only: overrides.admin_only ?? false,
-  }
+  };
 }
 
-const semesters: SemesterSetting[] = []
+const semesters: SemesterSetting[] = [];
 const selectedSlot = {
   start: new Date("2026-05-20T09:00:00+08:00"),
   end: new Date("2026-05-20T10:00:00+08:00"),
-}
+};
 
 describe("BookingWidget", () => {
   beforeEach(() => {
-    pushMock.mockReset()
-    useUserMock.mockReset()
-    toastErrorMock.mockReset()
-    toastSuccessMock.mockReset()
-    localStorage.clear()
-    window.history.pushState({}, "", "/dashboard/spaces/room-1")
-    useUserMock.mockReturnValue({ user: null, loading: false })
-  })
+    pushMock.mockReset();
+    useUserMock.mockReset();
+    toastErrorMock.mockReset();
+    toastSuccessMock.mockReset();
+    localStorage.clear();
+    window.history.pushState({}, "", "/dashboard/spaces/room-1");
+    useUserMock.mockReturnValue({ user: null, loading: false });
+  });
 
   it("disables the reserve action until a slot is selected", () => {
     render(
@@ -71,13 +73,13 @@ describe("BookingWidget", () => {
         selectedSlot={null}
         onChange={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByRole("button", { name: "預約" })).toBeDisabled()
-  })
+    expect(screen.getByRole("button", { name: "預約" })).toBeDisabled();
+  });
 
   it("opens confirmation and preserves guest booking data before redirecting to login", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
     render(
       <BookingWidget
@@ -87,25 +89,27 @@ describe("BookingWidget", () => {
         selectedSlot={selectedSlot}
         onChange={vi.fn()}
       />,
-    )
+    );
 
-    await user.click(screen.getByRole("button", { name: "預約" }))
+    await user.click(screen.getByRole("button", { name: "預約" }));
 
-    expect(await screen.findByText("確認預約資訊")).toBeTruthy()
+    expect(await screen.findByText("確認預約資訊")).toBeTruthy();
 
-    await user.type(screen.getByLabelText("借用事由"), "社團活動")
-    await user.click(screen.getByRole("button", { name: "確認預約" }))
+    await user.type(screen.getByLabelText("借用事由"), "社團活動");
+    await user.click(screen.getByRole("button", { name: "確認預約" }));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith("請先登入以完成預約")
+      expect(toastErrorMock).toHaveBeenCalledWith("請先登入以完成預約");
       expect(pushMock).toHaveBeenCalledWith(
         "/login?next=%2Fdashboard%2Fspaces%2Froom-1",
-      )
-    })
-    expect(JSON.parse(localStorage.getItem("pendingBooking_room-1") ?? "{}")).toEqual({
+      );
+    });
+    expect(
+      JSON.parse(localStorage.getItem("pendingBooking_room-1") ?? "{}"),
+    ).toEqual({
       start: selectedSlot.start.toISOString(),
       end: selectedSlot.end.toISOString(),
       purpose: "社團活動",
-    })
-  })
-})
+    });
+  });
+});

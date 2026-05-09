@@ -1,57 +1,57 @@
-"use server"
+"use server";
 
-import { createClient } from "@/utils/supabase/server"
-import { revalidatePath } from "next/cache"
-import { Room } from "@/utils/supabase/queries"
+import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
+import { Room } from "@/utils/supabase/queries";
 
 // Check if user is admin
 async function requireAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
 
-  if (profile?.role !== 'admin') {
-    throw new Error("Forbidden: Admin access required")
+  if (profile?.role !== "admin") {
+    throw new Error("Forbidden: Admin access required");
   }
-  
-  return supabase
+
+  return supabase;
 }
 
 export async function createRoom(data: Partial<Room>) {
-  const supabase = await requireAdmin()
-  
-  const { error } = await supabase
-    .from('rooms')
-    .insert({
-      name: data.name,
-      room_code: data.room_code,
-      capacity: data.capacity,
-      floor: data.floor,
-      room_type: data.room_type,
-      equipment: data.equipment || [],
-      unavailable_periods: data.unavailable_periods || [],
-      image_url: data.image_url,
-      is_active: data.is_active ?? true,
-      allow_noon: data.allow_noon ?? false,
-      admin_only: data.admin_only ?? false,
-    })
+  const supabase = await requireAdmin();
 
-  if (error) throw new Error(error.message)
-  revalidatePath('/dashboard/admin/rooms')
-  revalidatePath('/dashboard/spaces')
+  const { error } = await supabase.from("rooms").insert({
+    name: data.name,
+    room_code: data.room_code,
+    capacity: data.capacity,
+    floor: data.floor,
+    room_type: data.room_type,
+    equipment: data.equipment || [],
+    unavailable_periods: data.unavailable_periods || [],
+    image_url: data.image_url,
+    is_active: data.is_active ?? true,
+    allow_noon: data.allow_noon ?? false,
+    admin_only: data.admin_only ?? false,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/admin/rooms");
+  revalidatePath("/dashboard/spaces");
 }
 
 export async function updateRoom(id: string, data: Partial<Room>) {
-  const supabase = await requireAdmin()
+  const supabase = await requireAdmin();
 
   const { error } = await supabase
-    .from('rooms')
+    .from("rooms")
     .update({
       name: data.name,
       room_code: data.room_code,
@@ -64,48 +64,46 @@ export async function updateRoom(id: string, data: Partial<Room>) {
       allow_noon: data.allow_noon,
       admin_only: data.admin_only,
     })
-    .eq('id', id)
+    .eq("id", id);
 
-  if (error) throw new Error(error.message)
-  revalidatePath('/dashboard/admin/rooms')
-  revalidatePath('/dashboard/spaces')
-  revalidatePath(`/dashboard/spaces/${id}`)
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/admin/rooms");
+  revalidatePath("/dashboard/spaces");
+  revalidatePath(`/dashboard/spaces/${id}`);
 }
 
 export async function toggleRoomStatus(id: string, isActive: boolean) {
-  const supabase = await requireAdmin()
+  const supabase = await requireAdmin();
 
   const { error } = await supabase
-    .from('rooms')
+    .from("rooms")
     .update({ is_active: isActive })
-    .eq('id', id)
+    .eq("id", id);
 
-  if (error) throw new Error(error.message)
-  revalidatePath('/dashboard/admin/rooms')
-  revalidatePath('/dashboard/spaces')
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/admin/rooms");
+  revalidatePath("/dashboard/spaces");
 }
 
 export async function uploadRoomImage(formData: FormData): Promise<string> {
-  const supabase = await requireAdmin()
-  
-  const file = formData.get('file') as File
-  if (!file) throw new Error("No file provided")
+  const supabase = await requireAdmin();
 
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${Date.now()}.${fileExt}`
-  const filePath = `${fileName}`
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file provided");
 
-  const { error: uploadError } = await supabase
-    .storage
-    .from('room-images')
-    .upload(filePath, file)
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
 
-  if (uploadError) throw new Error(uploadError.message)
+  const { error: uploadError } = await supabase.storage
+    .from("room-images")
+    .upload(filePath, file);
 
-  const { data: { publicUrl } } = supabase
-    .storage
-    .from('room-images')
-    .getPublicUrl(filePath)
+  if (uploadError) throw new Error(uploadError.message);
 
-  return publicUrl
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("room-images").getPublicUrl(filePath);
+
+  return publicUrl;
 }

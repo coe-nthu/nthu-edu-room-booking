@@ -1,11 +1,11 @@
-import "@testing-library/jest-dom/vitest"
-import { cleanup } from "@testing-library/react"
-import React from "react"
-import { afterEach, vi } from "vitest"
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import React from "react";
+import { afterEach, vi } from "vitest";
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -19,7 +19,7 @@ Object.defineProperty(window, "matchMedia", {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-})
+});
 
 class ResizeObserverMock {
   observe() {}
@@ -30,27 +30,29 @@ class ResizeObserverMock {
 Object.defineProperty(window, "ResizeObserver", {
   writable: true,
   value: ResizeObserverMock,
-})
+});
 
-Element.prototype.scrollIntoView = vi.fn()
+Element.prototype.scrollIntoView = vi.fn();
 
 vi.mock("next/image", () => ({
-  default: (imageProps: React.ImgHTMLAttributes<HTMLImageElement> & {
-    src: string | { src: string }
-    fill?: boolean
-    priority?: boolean
-  }) => {
-    const { src, alt, ...props } = imageProps
-    delete props.fill
-    delete props.priority
+  default: (
+    imageProps: React.ImgHTMLAttributes<HTMLImageElement> & {
+      src: string | { src: string };
+      fill?: boolean;
+      priority?: boolean;
+    },
+  ) => {
+    const { src, alt, ...props } = imageProps;
+    delete props.fill;
+    delete props.priority;
 
     return React.createElement("img", {
       ...props,
       src: typeof src === "string" ? src : src.src,
       alt,
-    })
+    });
   },
-}))
+}));
 
 vi.mock("next/link", () => ({
   default: ({
@@ -58,7 +60,7 @@ vi.mock("next/link", () => ({
     children,
     ...props
   }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
-    href: string
-    children: React.ReactNode
+    href: string;
+    children: React.ReactNode;
   }) => React.createElement("a", { ...props, href }, children),
-}))
+}));

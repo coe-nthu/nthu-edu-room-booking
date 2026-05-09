@@ -1,6 +1,20 @@
-"use client"
+"use client";
 
-import { Calendar, Home, Inbox, LogOut, User, LayoutDashboard, BookOpen, Users, Cog, AlertCircle, ClipboardList, LogIn, ShieldCheck } from "lucide-react"
+import {
+  Calendar,
+  Home,
+  Inbox,
+  LogOut,
+  User,
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  Cog,
+  AlertCircle,
+  ClipboardList,
+  LogIn,
+  ShieldCheck,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,15 +28,21 @@ import {
   SidebarHeader,
   SidebarRail,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { useUser } from "@/hooks/use-user"
-import { createClient } from "@/utils/supabase/client"
-import { useRouter, usePathname } from "next/navigation"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEffect, useMemo, useState } from "react"
-import Image from "next/image"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/sidebar";
+import { useUser } from "@/hooks/use-user";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter, usePathname } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const items = [
   {
@@ -42,7 +62,7 @@ const items = [
     url: "/dashboard/my-bookings",
     icon: Calendar,
   },
-]
+];
 
 const reportItems = [
   {
@@ -55,7 +75,7 @@ const reportItems = [
     url: "/dashboard/report/records",
     icon: ClipboardList,
   },
-]
+];
 
 const adminItems = [
   {
@@ -83,7 +103,7 @@ const adminItems = [
     url: "/dashboard/admin/settings",
     icon: Cog,
   },
-]
+];
 
 // Items for users who are room approvers (non-admin)
 const approverItems = [
@@ -92,80 +112,82 @@ const approverItems = [
     url: "/dashboard/admin/approver-review",
     icon: ShieldCheck,
   },
-]
+];
 
 export function AppSidebar() {
-  const { user } = useUser()
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isApprover, setIsApprover] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const supabase = useMemo(() => createClient(), [])
-  const router = useRouter()
-  const pathname = usePathname()
-  const { setOpenMobile } = useSidebar()
+  const { user } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isApprover, setIsApprover] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
 
   // Close mobile sidebar sheet when navigating
   const handleMobileNavClick = () => {
-    setOpenMobile(false)
-  }
+    setOpenMobile(false);
+  };
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    let isCancelled = false
+    let isCancelled = false;
 
     const checkAdmin = async () => {
       if (!user) {
-        setIsAdmin(false)
-        setIsApprover(false)
-        return
+        setIsAdmin(false);
+        setIsApprover(false);
+        return;
       }
 
       const [profileResult, approverResult] = await Promise.all([
+        supabase.from("profiles").select("role").eq("id", user.id).single(),
         supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('room_approvers')
-          .select('id')
-          .eq('user_id', user.id)
+          .from("room_approvers")
+          .select("id")
+          .eq("user_id", user.id)
           .limit(1),
-      ])
+      ]);
 
-      if (isCancelled) return
-      
-      setIsAdmin(profileResult.data?.role === 'admin')
-      setIsApprover(!!approverResult.data && approverResult.data.length > 0)
-    }
+      if (isCancelled) return;
 
-    checkAdmin()
+      setIsAdmin(profileResult.data?.role === "admin");
+      setIsApprover(!!approverResult.data && approverResult.data.length > 0);
+    };
+
+    checkAdmin();
 
     return () => {
-      isCancelled = true
-    }
-  }, [user, supabase])
+      isCancelled = true;
+    };
+  }, [user, supabase]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   const handleSignIn = () => {
-    router.push("/login")
-  }
+    router.push("/login");
+  };
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2 group-data-[collapsible=icon]:px-0">
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground">
-            <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-contain" />
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-semibold">竹師教育學院</span>
@@ -179,24 +201,34 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items
-                .filter(item => {
+                .filter((item) => {
                   if (item.title === "我的預約" && !user) return false;
                   return true;
                 })
                 .map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
+                    <SidebarMenuButton
+                      asChild
                       isActive={pathname === item.url}
-                      className={item.highlight ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50" : ""}
+                      className={
+                        item.highlight
+                          ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/50"
+                          : ""
+                      }
                     >
                       <a href={item.url} onClick={handleMobileNavClick}>
-                        <item.icon className={item.highlight ? "text-red-600 dark:text-red-400" : ""} />
+                        <item.icon
+                          className={
+                            item.highlight
+                              ? "text-red-600 dark:text-red-400"
+                              : ""
+                          }
+                        />
                         <span>{item.title}</span>
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-              ))}
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -207,10 +239,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {reportItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={pathname === item.url}
-                  >
+                  <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <a href={item.url} onClick={handleMobileNavClick}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -274,11 +303,17 @@ export function AppSidebar() {
                       className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     >
                       <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                        <AvatarFallback className="rounded-lg">
+                          CN
+                        </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
-                        <span className="truncate text-xs">{user?.email || ''}</span>
+                        <span className="truncate font-semibold">
+                          {user?.email?.split("@")[0] || "User"}
+                        </span>
+                        <span className="truncate text-xs">
+                          {user?.email || ""}
+                        </span>
                       </div>
                       <User className="ml-auto size-4" />
                     </SidebarMenuButton>
@@ -295,11 +330,17 @@ export function AppSidebar() {
                     >
                       <div className="flex w-full cursor-pointer items-center gap-2 px-1 py-1.5 text-left text-sm">
                         <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                          <AvatarFallback className="rounded-lg">
+                            CN
+                          </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">
-                          <span className="truncate font-semibold">{user?.email?.split('@')[0] || 'User'}</span>
-                          <span className="truncate text-xs">{user?.email || ''}</span>
+                          <span className="truncate font-semibold">
+                            {user?.email?.split("@")[0] || "User"}
+                          </span>
+                          <span className="truncate text-xs">
+                            {user?.email || ""}
+                          </span>
                         </div>
                       </div>
                     </DropdownMenuItem>
@@ -335,5 +376,5 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

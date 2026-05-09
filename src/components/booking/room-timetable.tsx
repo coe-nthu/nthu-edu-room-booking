@@ -1,69 +1,76 @@
-"use client"
+"use client";
 
-import FullCalendar from '@fullcalendar/react'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import zhTwLocale from '@fullcalendar/core/locales/zh-tw'
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { TimetableEvent } from '@/utils/supabase/queries'
-import { getRoomBookings } from '@/app/actions/bookings'
-import { Loader2 } from 'lucide-react'
-import type { EventInput, DateSelectArg } from '@fullcalendar/core'
-import './room-timetable.css'
-import { toast } from "sonner"
-import { isSameDay } from "date-fns"
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import zhTwLocale from "@fullcalendar/core/locales/zh-tw";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { TimetableEvent } from "@/utils/supabase/queries";
+import { getRoomBookings } from "@/app/actions/bookings";
+import { Loader2 } from "lucide-react";
+import type { EventInput, DateSelectArg } from "@fullcalendar/core";
+import "./room-timetable.css";
+import { toast } from "sonner";
+import { isSameDay } from "date-fns";
 
 type RoomTimetableProps = {
-  roomId: string
-  onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void
-  selectedSlot?: { start: Date; end: Date } | null
-  excludeBookingId?: string
-  focusDate?: Date
-  unavailablePeriods?: { day: number; start: string; end: string }[] | null
-}
+  roomId: string;
+  onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void;
+  selectedSlot?: { start: Date; end: Date } | null;
+  excludeBookingId?: string;
+  focusDate?: Date;
+  unavailablePeriods?: { day: number; start: string; end: string }[] | null;
+};
 
-export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBookingId, focusDate, unavailablePeriods }: RoomTimetableProps) {
-  const [events, setEvents] = useState<TimetableEvent[]>([])
-  const [loading, setLoading] = useState(false)
-  const calendarRef = useRef<FullCalendar>(null)
+export function RoomTimetable({
+  roomId,
+  onSelectSlot,
+  selectedSlot,
+  excludeBookingId,
+  focusDate,
+  unavailablePeriods,
+}: RoomTimetableProps) {
+  const [events, setEvents] = useState<TimetableEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const calendarRef = useRef<FullCalendar>(null);
 
   const fetchEvents = useCallback(async () => {
-    if (!roomId) return
-    setLoading(true)
+    if (!roomId) return;
+    setLoading(true);
     try {
-      const data = await getRoomBookings(roomId, excludeBookingId)
-      setEvents(data)
+      const data = await getRoomBookings(roomId, excludeBookingId);
+      setEvents(data);
     } catch (error) {
-      console.error('Failed to fetch events', error)
+      console.error("Failed to fetch events", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [roomId, excludeBookingId])
+  }, [roomId, excludeBookingId]);
 
   useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
+    fetchEvents();
+  }, [fetchEvents]);
 
   // Navigate calendar to focusDate when it changes
   useEffect(() => {
     if (focusDate && calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi()
-      calendarApi.gotoDate(focusDate)
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.gotoDate(focusDate);
     }
-  }, [focusDate])
+  }, [focusDate]);
 
   // Transform TimetableEvent to FullCalendar EventInput format
   const calendarEvents: EventInput[] = events.map((event) => {
-    let backgroundColor = '#3b82f6' // Blue-500
-    let borderColor = '#2563eb' // Blue-600
-    
-    if (event.status === 'approved') {
-      backgroundColor = '#ef4444' // Red-500
-      borderColor = '#dc2626' // Red-600
-    } else if (event.status === 'pending') {
-      backgroundColor = '#f97316' // Orange-500
-      borderColor = '#ea580c' // Orange-600
+    let backgroundColor = "#3b82f6"; // Blue-500
+    let borderColor = "#2563eb"; // Blue-600
+
+    if (event.status === "approved") {
+      backgroundColor = "#ef4444"; // Red-500
+      borderColor = "#dc2626"; // Red-600
+    } else if (event.status === "pending") {
+      backgroundColor = "#f97316"; // Orange-500
+      borderColor = "#ea580c"; // Orange-600
     }
 
     return {
@@ -73,27 +80,27 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
       end: event.end,
       backgroundColor,
       borderColor,
-      textColor: '#ffffff',
+      textColor: "#ffffff",
       extendedProps: {
         status: event.status,
         details: event.details,
       },
-    }
-  })
+    };
+  });
 
   // Add selected slot event if exists
   if (selectedSlot) {
     calendarEvents.push({
-      id: 'selected-slot',
-      title: '已選取',
+      id: "selected-slot",
+      title: "已選取",
       start: selectedSlot.start,
       end: selectedSlot.end,
-      backgroundColor: '#10b981', // Emerald-500
-      borderColor: '#059669', // Emerald-600
-      textColor: 'white',
-      display: 'block',
-      classNames: ['selected-slot-event'],
-    })
+      backgroundColor: "#10b981", // Emerald-500
+      borderColor: "#059669", // Emerald-600
+      textColor: "white",
+      display: "block",
+      classNames: ["selected-slot-event"],
+    });
   }
 
   // Add unavailable periods as background events
@@ -101,47 +108,47 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
     unavailablePeriods.forEach((period, index) => {
       calendarEvents.push({
         id: `unavailable-${index}`,
-        groupId: 'unavailable',
+        groupId: "unavailable",
         daysOfWeek: [period.day],
         startTime: period.start,
         endTime: period.end,
-        display: 'background',
-        backgroundColor: '#fee2e2', // Light red (Tailwind red-100)
-        classNames: ['unavailable-period-event'],
-      })
-    })
+        display: "background",
+        backgroundColor: "#fee2e2", // Light red (Tailwind red-100)
+        classNames: ["unavailable-period-event"],
+      });
+    });
   }
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    const now = new Date()
-    const start = selectInfo.start
-    const end = selectInfo.end
+    const now = new Date();
+    const start = selectInfo.start;
+    const end = selectInfo.end;
 
     // Check if past time
     if (start < now) {
-      toast.error("無法選擇過去的時間")
-      selectInfo.view.calendar.unselect()
-      return
+      toast.error("無法選擇過去的時間");
+      selectInfo.view.calendar.unselect();
+      return;
     }
 
     // Check if cross day
     // Subtract 1ms from end to handle midnight correctly (e.g. 2024-01-01 14:00 to 2024-01-02 00:00 should be valid)
-    const adjustedEnd = new Date(end.getTime() - 1)
+    const adjustedEnd = new Date(end.getTime() - 1);
     if (!isSameDay(start, adjustedEnd)) {
-       toast.error("無法跨日預約")
-       selectInfo.view.calendar.unselect()
-       return
+      toast.error("無法跨日預約");
+      selectInfo.view.calendar.unselect();
+      return;
     }
 
     // Only allow selection in future (double check)
     if (start >= now) {
-      onSelectSlot?.({ start, end })
+      onSelectSlot?.({ start, end });
     }
-    
+
     // Unselect the selection highlight as we will show the 'selected-slot' event instead
-    const calendarApi = selectInfo.view.calendar
-    calendarApi.unselect()
-  }
+    const calendarApi = selectInfo.view.calendar;
+    calendarApi.unselect();
+  };
 
   return (
     <div className="relative bg-background rounded-lg border p-4 shadow-sm fc-wrapper">
@@ -150,48 +157,48 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
-      
+
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
         locale={zhTwLocale}
         headerToolbar={{
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay",
         }}
         views={{
           timeGridWeek: {
-            type: 'timeGrid',
+            type: "timeGrid",
             duration: { days: 7 },
-            buttonText: '週',
-          }
+            buttonText: "週",
+          },
         }}
         buttonText={{
-          today: '今天',
-          month: '月',
-          week: '週',
-          day: '日',
+          today: "今天",
+          month: "月",
+          week: "週",
+          day: "日",
         }}
         slotDuration="00:30:00"
         slotMinTime="08:00:00"
         slotMaxTime="22:00:00"
         slotLabelInterval="01:00:00"
         slotLabelFormat={{
-          hour: '2-digit',
-          minute: '2-digit',
+          hour: "2-digit",
+          minute: "2-digit",
           hour12: false,
         }}
         eventTimeFormat={{
-          hour: '2-digit',
-          minute: '2-digit',
+          hour: "2-digit",
+          minute: "2-digit",
           hour12: false,
         }}
-        dayHeaderFormat={{ 
-          month: 'numeric', 
-          day: 'numeric', 
-          weekday: 'narrow' 
+        dayHeaderFormat={{
+          month: "numeric",
+          day: "numeric",
+          weekday: "narrow",
         }}
         allDaySlot={false}
         nowIndicator={true}
@@ -209,5 +216,5 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
         eventDisplay="block"
       />
     </div>
-  )
+  );
 }

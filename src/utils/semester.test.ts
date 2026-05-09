@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   checkDateRestrictions,
@@ -9,7 +9,7 @@ import {
   isDateWithin4Months,
   isSameDay,
   type SemesterSetting,
-} from "@/utils/semester"
+} from "@/utils/semester";
 
 const semesters: SemesterSetting[] = [
   {
@@ -30,17 +30,17 @@ const semesters: SemesterSetting[] = [
     created_at: "2026-01-01",
     updated_at: "2026-01-01",
   },
-]
+];
 
 describe("semester utilities", () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-05-09T09:00:00+08:00"))
-  })
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-09T09:00:00+08:00"));
+  });
 
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
   it("checks whether two dates are on the same local day", () => {
     expect(
@@ -48,47 +48,69 @@ describe("semester utilities", () => {
         new Date("2026-05-09T08:00:00+08:00"),
         new Date("2026-05-09T22:00:00+08:00"),
       ),
-    ).toBe(true)
+    ).toBe(true);
     expect(
       isSameDay(
         new Date("2026-05-09T23:30:00+08:00"),
         new Date("2026-05-10T00:30:00+08:00"),
       ),
-    ).toBe(false)
-  })
+    ).toBe(false);
+  });
 
   it("detects dates inside semester ranges", () => {
-    expect(isDateInSemester(new Date("2026-02-01T12:00:00+08:00"), semesters[0])).toBe(true)
-    expect(isDateInSemester(new Date("2026-06-30T23:00:00+08:00"), semesters[0])).toBe(true)
-    expect(isDateInSemester(new Date("2026-07-01T00:00:00+08:00"), semesters[0])).toBe(false)
-  })
+    expect(
+      isDateInSemester(new Date("2026-02-01T12:00:00+08:00"), semesters[0]),
+    ).toBe(true);
+    expect(
+      isDateInSemester(new Date("2026-06-30T23:00:00+08:00"), semesters[0]),
+    ).toBe(true);
+    expect(
+      isDateInSemester(new Date("2026-07-01T00:00:00+08:00"), semesters[0]),
+    ).toBe(false);
+  });
 
   it("finds current and next semester from today's date", () => {
-    const current = getCurrentSemester(semesters)
-    expect(current?.id).toBe("spring")
-    expect(getNextSemester(semesters, current)?.id).toBe("fall")
-  })
+    const current = getCurrentSemester(semesters);
+    expect(current?.id).toBe("spring");
+    expect(getNextSemester(semesters, current)?.id).toBe("fall");
+  });
 
   it("enforces the four-month booking window for regular users", () => {
-    expect(isDateWithin4Months(new Date("2026-09-09T08:00:00+08:00"))).toBe(true)
-    expect(isDateWithin4Months(new Date("2026-09-10T08:00:00+08:00"))).toBe(false)
-  })
+    expect(isDateWithin4Months(new Date("2026-09-09T08:00:00+08:00"))).toBe(
+      true,
+    );
+    expect(isDateWithin4Months(new Date("2026-09-10T08:00:00+08:00"))).toBe(
+      false,
+    );
+  });
 
   it("locks next semester for non-admins and bypasses for admins", () => {
-    const fallDate = new Date("2026-09-15T08:00:00+08:00")
+    const fallDate = new Date("2026-09-15T08:00:00+08:00");
 
-    expect(isDateInLockedPeriod(fallDate, semesters, false)).toBe(true)
-    expect(isDateInLockedPeriod(fallDate, semesters, true)).toBe(false)
-  })
+    expect(isDateInLockedPeriod(fallDate, semesters, false)).toBe(true);
+    expect(isDateInLockedPeriod(fallDate, semesters, true)).toBe(false);
+  });
 
   it("reports the first matching restriction", () => {
-    expect(checkDateRestrictions(new Date("2026-09-10T08:00:00+08:00"), semesters, false)).toEqual({
+    expect(
+      checkDateRestrictions(
+        new Date("2026-09-10T08:00:00+08:00"),
+        semesters,
+        false,
+      ),
+    ).toEqual({
       isRestricted: true,
       message: "一般使用者僅能借用未來 4 個月內的日期",
-    })
-    expect(checkDateRestrictions(new Date("2026-09-15T08:00:00+08:00"), semesters, true)).toEqual({
+    });
+    expect(
+      checkDateRestrictions(
+        new Date("2026-09-15T08:00:00+08:00"),
+        semesters,
+        true,
+      ),
+    ).toEqual({
       isRestricted: false,
       message: null,
-    })
-  })
-})
+    });
+  });
+});
