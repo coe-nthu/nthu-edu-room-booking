@@ -69,7 +69,7 @@ export async function updateSemesterSettings(
   }
   
   revalidatePath('/dashboard/admin/settings')
-  revalidatePath('/dashboard/book')
+  revalidatePath('/dashboard/spaces')
 }
 
 /**
@@ -93,7 +93,7 @@ export async function toggleNextSemesterOpen(id: string, isOpen: boolean) {
   }
   
   revalidatePath('/dashboard/admin/settings')
-  revalidatePath('/dashboard/book')
+  revalidatePath('/dashboard/spaces')
 }
 
 /**
@@ -144,4 +144,3 @@ export async function deleteSemesterSetting(id: string) {
   
   revalidatePath('/dashboard/admin/settings')
 }
-

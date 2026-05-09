@@ -45,7 +45,6 @@ export async function createRoom(data: Partial<Room>) {
   if (error) throw new Error(error.message)
   revalidatePath('/dashboard/admin/rooms')
   revalidatePath('/dashboard/spaces')
-  revalidatePath('/dashboard/book')
 }
 
 export async function updateRoom(id: string, data: Partial<Room>) {
@@ -70,7 +69,6 @@ export async function updateRoom(id: string, data: Partial<Room>) {
   if (error) throw new Error(error.message)
   revalidatePath('/dashboard/admin/rooms')
   revalidatePath('/dashboard/spaces')
-  revalidatePath('/dashboard/book')
   revalidatePath(`/dashboard/spaces/${id}`)
 }
 
@@ -85,7 +83,6 @@ export async function toggleRoomStatus(id: string, isActive: boolean) {
   if (error) throw new Error(error.message)
   revalidatePath('/dashboard/admin/rooms')
   revalidatePath('/dashboard/spaces')
-  revalidatePath('/dashboard/book')
 }
 
 export async function uploadRoomImage(formData: FormData): Promise<string> {
@@ -112,4 +109,3 @@ export async function uploadRoomImage(formData: FormData): Promise<string> {
 
   return publicUrl
 }
-

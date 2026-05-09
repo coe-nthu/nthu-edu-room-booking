@@ -37,11 +37,6 @@ const items = [
     icon: Home,
     highlight: false,
   },
-  // {
-  //   title: "預約空間(舊版)",
-  //   url: "/dashboard/book",
-  //   icon: PlusCircle,
-  // },
   {
     title: "我的預約",
     url: "/dashboard/my-bookings",

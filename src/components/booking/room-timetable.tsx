@@ -106,7 +106,7 @@ export function RoomTimetable({ roomId, onSelectSlot, selectedSlot, excludeBooki
         startTime: period.start,
         endTime: period.end,
         display: 'background',
-        backgroundColor: '#f8fafc', // Very light gray (Tailwind slate-50)
+        backgroundColor: '#fee2e2', // Light red (Tailwind red-100)
         classNames: ['unavailable-period-event'],
       })
     })

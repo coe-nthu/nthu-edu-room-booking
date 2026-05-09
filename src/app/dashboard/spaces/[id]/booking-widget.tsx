@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import type { Room } from "@/utils/supabase/queries"
 import type { SemesterSetting } from "@/utils/semester"
-import { validateBookingRules, generateTimeSlots } from "@/app/dashboard/book/utils"
+import { validateBookingRules, generateTimeSlots } from "@/lib/booking-rules"
 import { 
   Select,
   SelectContent,

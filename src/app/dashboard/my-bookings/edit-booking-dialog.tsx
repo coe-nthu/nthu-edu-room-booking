@@ -46,7 +46,7 @@ import { useRouter } from "next/navigation"
 import type { Room } from "@/utils/supabase/queries"
 import type { Booking } from "@/utils/supabase/queries"
 import type { SemesterSetting } from "@/utils/semester"
-import { RoomTimetable } from "@/app/dashboard/book/room-timetable"
+import { RoomTimetable } from "@/components/booking/room-timetable"
 import { 
   isDateWithin4Months, 
   isDateInLockedPeriod, 
@@ -537,4 +537,3 @@ export function EditBookingDialog({ booking, rooms, semesterSettings = [], child
     </>
   )
 }
-
