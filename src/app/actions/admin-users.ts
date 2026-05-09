@@ -1,77 +1,86 @@
-"use server"
+"use server";
 
-import { createServiceClient } from "@/utils/supabase/service"
-import { createClient } from "@/utils/supabase/server"
-import { Resend } from 'resend'
-import { revalidatePath } from "next/cache"
+import { createServiceClient } from "@/utils/supabase/service";
+import { createClient } from "@/utils/supabase/server";
+import { Resend } from "resend";
+import { revalidatePath } from "next/cache";
 
 export type AdminUser = {
-  id: string
-  email: string
-  role: string
-  is_approved: boolean
-  created_at: string
-  last_sign_in_at: string | null
-  full_name: string | null
-  user_type: string | null
-  supervisor_name: string | null
-  phone: string | null
-  department_name: string | null
-}
+  id: string;
+  email: string;
+  role: string;
+  is_approved: boolean;
+  created_at: string;
+  last_sign_in_at: string | null;
+  full_name: string | null;
+  user_type: string | null;
+  supervisor_name: string | null;
+  phone: string | null;
+  department_name: string | null;
+};
 
 // Ensure current user is admin
 async function requireAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) throw new Error("Unauthorized")
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  
-  if (profile?.role !== 'admin') throw new Error("Forbidden")
-  return user
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role !== "admin") throw new Error("Forbidden");
+  return user;
 }
 
 export async function getUsers(): Promise<AdminUser[]> {
-  await requireAdmin()
-  const supabaseAdmin = createServiceClient()
+  await requireAdmin();
+  const supabaseAdmin = createServiceClient();
 
   // 1. Get all auth users
-  const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  if (usersError) throw usersError
+  const {
+    data: { users },
+    error: usersError,
+  } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (usersError) throw usersError;
 
   // 1.1 Filter only users who have verified their email
-  const verifiedUsers = users.filter(user => user.email_confirmed_at)
+  const verifiedUsers = users.filter((user) => user.email_confirmed_at);
 
   // 2. Get all profiles
   const { data: profiles, error: profilesError } = await supabaseAdmin
-    .from('profiles')
-    .select('id, role, is_approved, full_name, user_type, supervisor_name, phone, department:departments(name)')
-  
-  if (profilesError) throw profilesError
+    .from("profiles")
+    .select(
+      "id, role, is_approved, full_name, user_type, supervisor_name, phone, department:departments(name)",
+    );
+
+  if (profilesError) throw profilesError;
 
   type ProfileRow = {
-    id: string
-    role: string | null
-    is_approved: boolean | null
-    full_name: string | null
-    user_type: string | null
-    supervisor_name: string | null
-    phone: string | null
-    department?: { name: string } | null
-  }
+    id: string;
+    role: string | null;
+    is_approved: boolean | null;
+    full_name: string | null;
+    user_type: string | null;
+    supervisor_name: string | null;
+    phone: string | null;
+    department?: { name: string } | null;
+  };
 
   // 3. Merge data (only for verified users)
-  const mergedUsers = verifiedUsers.map(user => {
-    const profile = (profiles?.find((p) => p.id === user.id) as ProfileRow | undefined)
+  const mergedUsers = verifiedUsers.map((user) => {
+    const profile = profiles?.find((p) => p.id === user.id) as
+      | ProfileRow
+      | undefined;
     return {
       id: user.id,
-      email: user.email || '',
-      role: profile?.role || 'user',
+      email: user.email || "",
+      role: profile?.role || "user",
       is_approved: profile?.is_approved || false,
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at || null,
@@ -80,35 +89,35 @@ export async function getUsers(): Promise<AdminUser[]> {
       supervisor_name: profile?.supervisor_name ?? null,
       phone: profile?.phone ?? null,
       department_name: profile?.department?.name ?? null,
-    }
-  })
+    };
+  });
 
-  return mergedUsers
+  return mergedUsers;
 }
 
 export async function approveUser(userId: string, email: string) {
-  await requireAdmin()
-  const supabaseAdmin = createServiceClient()
+  await requireAdmin();
+  const supabaseAdmin = createServiceClient();
 
   // Update profile approval status
   const { error } = await supabaseAdmin
-    .from('profiles')
+    .from("profiles")
     .update({ is_approved: true })
-    .eq('id', userId)
+    .eq("id", userId);
 
-  if (error) throw error
+  if (error) throw error;
 
   // Send notification email
-  const resendApiKey = process.env.RESEND_API_KEY
+  const resendApiKey = process.env.RESEND_API_KEY;
   if (resendApiKey) {
     try {
-      const resend = new Resend(resendApiKey)
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const resend = new Resend(resendApiKey);
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
       await resend.emails.send({
-        from: '竹師教育學院空間借用與修繕系統 <no-reply@will-cheng.com>', // Update this with your verified domain
+        from: "竹師教育學院空間借用與修繕系統 <no-reply@will-cheng.com>", // Update this with your verified domain
         to: email,
-        subject: '您的帳號已通過審核',
+        subject: "您的帳號已通過審核",
         html: `
           <h2>帳號審核通過通知</h2>
           <p>您好：</p>
@@ -119,59 +128,60 @@ export async function approveUser(userId: string, email: string) {
           </p>
           <hr />
           <p style="font-size: 12px; color: #666;">此信件由系統自動發送，請勿回覆。</p>
-        `
-      })
+        `,
+      });
     } catch (emailError) {
-      console.error("Failed to send approval email:", emailError)
+      console.error("Failed to send approval email:", emailError);
       // Don't block approval if email fails
     }
   }
 
-  revalidatePath('/dashboard/admin/users')
+  revalidatePath("/dashboard/admin/users");
 }
 
 export async function deleteUser(userId: string) {
-  await requireAdmin()
-  const supabaseAdmin = createServiceClient()
+  await requireAdmin();
+  const supabaseAdmin = createServiceClient();
 
   // 1. 刪除此使用者相關的業務資料（例如預約紀錄）
   const { error: bookingsError } = await supabaseAdmin
-    .from('bookings')
+    .from("bookings")
     .delete()
-    .eq('user_id', userId)
+    .eq("user_id", userId);
 
   if (bookingsError) {
-    throw bookingsError
+    throw bookingsError;
   }
 
   // 2. 刪除 profile（避免 FK 造成 auth.users 無法刪除）
   const { error: profileError } = await supabaseAdmin
-    .from('profiles')
+    .from("profiles")
     .delete()
-    .eq('id', userId)
+    .eq("id", userId);
 
   if (profileError) {
-    throw profileError
+    throw profileError;
   }
 
   // 3. 最後刪除 auth.users 帳號
-  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+  const { error: authError } =
+    await supabaseAdmin.auth.admin.deleteUser(userId);
 
-  if (authError) throw authError
-  revalidatePath('/dashboard/admin/users')
+  if (authError) throw authError;
+  revalidatePath("/dashboard/admin/users");
 }
 
 export async function toggleAdminRole(userId: string, currentRole: string) {
-  await requireAdmin()
-  const supabaseAdmin = createServiceClient()
-  
-  const newRole = currentRole === 'admin' ? 'user' : 'admin'
+  await requireAdmin();
+  const supabaseAdmin = createServiceClient();
+
+  const newRole = currentRole === "admin" ? "user" : "admin";
 
   const { error } = await supabaseAdmin
-    .from('profiles')
+    .from("profiles")
     .update({ role: newRole })
-    .eq('id', userId)
+    .eq("id", userId);
 
-  if (error) throw error
-  revalidatePath('/dashboard/admin/users')
+  if (error) throw error;
+  revalidatePath("/dashboard/admin/users");
 }
