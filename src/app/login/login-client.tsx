@@ -1,7 +1,7 @@
 "use client"
 
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -15,10 +15,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Eye, EyeOff, ArrowLeft, Search } from "lucide-react"
 import { checkUserExists } from "@/app/actions/auth"
+import { cn } from "@/lib/utils"
 
 type Department = {
   id: number
@@ -52,6 +54,8 @@ export default function LoginClient({ initialDepartments = [] }: { initialDepart
   const [signUpFullName, setSignUpFullName] = useState("")
   const [signUpPhone, setSignUpPhone] = useState("")
   const [signUpDepartmentId, setSignUpDepartmentId] = useState<string>("")
+  const [isDepartmentOpen, setIsDepartmentOpen] = useState(false)
+  const [departmentSearch, setDepartmentSearch] = useState("")
   const [signUpUserType, setSignUpUserType] = useState<"teacher" | "staff" | "assistant" | "student" | "">("")
   const [signUpSupervisor, setSignUpSupervisor] = useState("")
   const [isSigningUp, setIsSigningUp] = useState(false)
@@ -59,6 +63,17 @@ export default function LoginClient({ initialDepartments = [] }: { initialDepart
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [departments] = useState<Department[]>(initialDepartments)
+  const selectedDepartment = useMemo(
+    () => departments.find((dept) => String(dept.id) === signUpDepartmentId),
+    [departments, signUpDepartmentId]
+  )
+  const filteredDepartments = useMemo(() => {
+    const keyword = departmentSearch.trim().toLowerCase()
+
+    if (!keyword) return departments
+
+    return departments.filter((dept) => dept.name.toLowerCase().includes(keyword))
+  }, [departmentSearch, departments])
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -384,21 +399,80 @@ export default function LoginClient({ initialDepartments = [] }: { initialDepart
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="signup-department">所屬單位 <span className="text-red-500">*</span></Label>
-                        <Select
-                          value={signUpDepartmentId}
-                          onValueChange={(value) => setSignUpDepartmentId(value)}
+                        <Popover
+                          open={isDepartmentOpen}
+                          onOpenChange={(open) => {
+                            setIsDepartmentOpen(open)
+                            if (open) setDepartmentSearch("")
+                          }}
                         >
-                          <SelectTrigger id="signup-department">
-                              <SelectValue placeholder="請選擇所屬單位" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {departments.map((dept) => (
-                                <SelectItem key={dept.id} value={String(dept.id)}>
-                                  {dept.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                          <PopoverTrigger asChild>
+                            <Button
+                              id="signup-department"
+                              type="button"
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={isDepartmentOpen}
+                              className="w-full justify-between px-3 font-normal"
+                            >
+                              <span className={cn(
+                                "truncate",
+                                !selectedDepartment && "text-muted-foreground"
+                              )}>
+                                {selectedDepartment?.name || "請選擇所屬單位"}
+                              </span>
+                              <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+                            <div className="flex items-center gap-2 border-b px-3 py-2">
+                              <Search className="h-4 w-4 text-muted-foreground" />
+                              <Input
+                                autoFocus
+                                value={departmentSearch}
+                                onChange={(e) => setDepartmentSearch(e.target.value)}
+                                placeholder="搜尋所屬單位..."
+                                className="h-8 border-0 px-0 shadow-none focus-visible:ring-0"
+                              />
+                            </div>
+                            <div className="max-h-60 overflow-y-auto p-1">
+                              {filteredDepartments.length > 0 ? (
+                                filteredDepartments.map((dept) => {
+                                  const value = String(dept.id)
+                                  const isSelected = value === signUpDepartmentId
+
+                                  return (
+                                    <button
+                                      key={dept.id}
+                                      type="button"
+                                      role="option"
+                                      aria-selected={isSelected}
+                                      className={cn(
+                                        "flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                                        isSelected && "bg-accent"
+                                      )}
+                                      onClick={() => {
+                                        setSignUpDepartmentId(value)
+                                        setIsDepartmentOpen(false)
+                                        setDepartmentSearch("")
+                                      }}
+                                    >
+                                      <Check className={cn(
+                                        "h-4 w-4",
+                                        isSelected ? "opacity-100" : "opacity-0"
+                                      )} />
+                                      <span className="truncate">{dept.name}</span>
+                                    </button>
+                                  )
+                                })
+                              ) : (
+                                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                  找不到符合的單位
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="signup-user-type">身份別 <span className="text-red-500">*</span></Label>
