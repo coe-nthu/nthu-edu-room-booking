@@ -8,6 +8,14 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const type = requestUrl.searchParams.get('type')
   const next = requestUrl.searchParams.get('next') || '/dashboard'
+  const authErrorCode = requestUrl.searchParams.get('error_code')
+  const authError = requestUrl.searchParams.get('error')
+
+  if (authError || authErrorCode) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('reset', 'expired')
+    return NextResponse.redirect(loginUrl)
+  }
 
   if (code) {
     const cookieStore = await cookies()
@@ -41,7 +49,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Return the user to an error page with instructions
-  return NextResponse.redirect(new URL('/login?error=auth-code-error', request.url))
+  // Return the user to login with a clear recovery path.
+  const loginUrl = new URL('/login', request.url)
+  loginUrl.searchParams.set('reset', 'expired')
+  return NextResponse.redirect(loginUrl)
 }
-
