@@ -1,45 +1,43 @@
-import { createClient } from '@/utils/supabase/server'
-import { createServiceClient } from '@/utils/supabase/service'
-import type { Booking } from './queries'
+import { createServiceClient } from "@/utils/supabase/service";
+import type { Booking } from "./queries";
 
 export type ApprovalStepInfo = {
-  id: string
-  step_order: number
-  approver_id: string
-  label: string | null
-  status: 'pending' | 'approved' | 'rejected' | 'skipped'
-  decided_at: string | null
-  comment: string | null
+  id: string;
+  step_order: number;
+  approver_id: string;
+  label: string | null;
+  status: "pending" | "approved" | "rejected" | "skipped";
+  decided_at: string | null;
+  comment: string | null;
   approver?: {
-    full_name: string | null
-  }
-}
+    full_name: string | null;
+  };
+};
 
 export type AdminBooking = Booking & {
   user: {
-    full_name: string
-    email: string
-    student_id: string | null
+    full_name: string;
+    email: string;
+    student_id: string | null;
     department: {
-      name: string
-    } | null
-  }
-  approval_steps?: ApprovalStepInfo[]
-  has_multi_level_approval?: boolean
-  current_approval_label?: string | null
-}
+      name: string;
+    } | null;
+  };
+  approval_steps?: ApprovalStepInfo[];
+  has_multi_level_approval?: boolean;
+  current_approval_label?: string | null;
+};
 
-export async function getAdminBookings(
-  filters?: {
-    status?: 'pending' | 'approved' | 'rejected' | 'all'
-    search?: string
-  }
-): Promise<AdminBooking[]> {
-  const supabase = await createClient()
-  
-  let query = supabase
-    .from('bookings')
-    .select(`
+export async function getAdminBookings(filters?: {
+  status?: "pending" | "approved" | "rejected" | "all";
+  search?: string;
+}): Promise<AdminBooking[]> {
+  // This function is only called after the admin guard in the page layer.
+  // Use the service client here so the admin list can reliably hydrate related
+  // profile/department data instead of depending on the caller's RLS context.
+  const supabase = createServiceClient();
+
+  let query = supabase.from("bookings").select(`
       id,
       room_id,
       start_time,
@@ -51,7 +49,7 @@ export async function getAdminBookings(
         name,
         room_code
       ),
-      user:profiles (
+      user:profiles!bookings_user_id_fkey (
         full_name,
         student_id,
         username, 
@@ -59,14 +57,14 @@ export async function getAdminBookings(
            name
         )
       )
-    `)
+    `);
 
   // Filter by status
-  if (filters?.status && filters.status !== 'all') {
-    query = query.eq('status', filters.status)
-  } else if (!filters?.status || filters.status === 'all') {
+  if (filters?.status && filters.status !== "all") {
+    query = query.eq("status", filters.status);
+  } else if (!filters?.status || filters.status === "all") {
     // Include pending, approved, and rejected (exclude cancelled)
-    query = query.in('status', ['pending', 'approved', 'rejected'])
+    query = query.in("status", ["pending", "approved", "rejected"]);
   }
 
   // Search filter (by user name or room name/code)
@@ -77,105 +75,131 @@ export async function getAdminBookings(
   }
 
   // Order by status (pending first), then by created_at
-  query = query.order('created_at', { ascending: true })
+  query = query.order("created_at", { ascending: true });
 
-  const { data, error } = await query
+  const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching admin bookings:', error)
-    return []
+    console.error("Error fetching admin bookings:", error);
+    return [];
   }
 
-  let bookings = (data as unknown as AdminBooking[]) || []
+  let bookings = (data as unknown as AdminBooking[]) || [];
 
   // Enrich bookings with approval steps data
   if (bookings.length > 0) {
-    const bookingIds = bookings.map(b => b.id)
-    const supabaseAdmin = createServiceClient()
+    const bookingIds = bookings.map((b) => b.id);
+    const supabaseAdmin = createServiceClient();
     const { data: allSteps } = await supabaseAdmin
-      .from('booking_approval_steps')
-      .select(`
+      .from("booking_approval_steps")
+      .select(
+        `
         id, booking_id, step_order, approver_id, label, status, decided_at, comment,
         approver:profiles!booking_approval_steps_approver_id_fkey (full_name)
-      `)
-      .in('booking_id', bookingIds)
-      .order('step_order')
+      `,
+      )
+      .in("booking_id", bookingIds)
+      .order("step_order");
 
     if (allSteps && allSteps.length > 0) {
-      const stepsMap = new Map<string, ApprovalStepInfo[]>()
+      const stepsMap = new Map<string, ApprovalStepInfo[]>();
       for (const step of allSteps) {
-        const bookingId = (step as unknown as { booking_id: string }).booking_id
-        if (!stepsMap.has(bookingId)) stepsMap.set(bookingId, [])
-        stepsMap.get(bookingId)!.push(step as unknown as ApprovalStepInfo)
+        const bookingId = (step as unknown as { booking_id: string })
+          .booking_id;
+        if (!stepsMap.has(bookingId)) stepsMap.set(bookingId, []);
+        stepsMap.get(bookingId)!.push(step as unknown as ApprovalStepInfo);
       }
 
-      bookings = bookings.map(b => {
-        const steps = stepsMap.get(b.id)
+      bookings = bookings.map((b) => {
+        const steps = stepsMap.get(b.id);
         if (steps && steps.length > 0) {
           // Find current pending step
-          const currentStep = steps.find(s => s.status === 'pending')
+          const currentStep = steps.find((s) => s.status === "pending");
           return {
             ...b,
             approval_steps: steps,
             has_multi_level_approval: true,
-            current_approval_label: currentStep?.label || 
-              (steps.every(s => s.status === 'approved' || s.status === 'skipped') ? '全部核准' : null),
-          }
+            current_approval_label:
+              currentStep?.label ||
+              (steps.every(
+                (s) => s.status === "approved" || s.status === "skipped",
+              )
+                ? "全部核准"
+                : null),
+          };
         }
-        return { ...b, has_multi_level_approval: false }
-      })
+        return { ...b, has_multi_level_approval: false };
+      });
     }
   }
 
   // Apply search filter in memory if needed
   if (filters?.search) {
-    const searchTerm = filters.search.toLowerCase()
+    const searchTerm = filters.search.toLowerCase();
     bookings = bookings.filter((booking) => {
-      const safeRoom = Array.isArray(booking.room) ? booking.room[0] : booking.room
-      const safeUser = Array.isArray(booking.user) ? booking.user[0] : booking.user
+      const safeRoom = Array.isArray(booking.room)
+        ? booking.room[0]
+        : booking.room;
+      const safeUser = Array.isArray(booking.user)
+        ? booking.user[0]
+        : booking.user;
 
-      const userName = safeUser?.full_name?.toLowerCase() || ''
-      const studentId = safeUser?.student_id?.toLowerCase() || ''
-      const roomName = safeRoom?.name?.toLowerCase() || ''
-      const roomCode = safeRoom?.room_code?.toLowerCase() || ''
-      
+      const userName = safeUser?.full_name?.toLowerCase() || "";
+      const studentId = safeUser?.student_id?.toLowerCase() || "";
+      const roomName = safeRoom?.name?.toLowerCase() || "";
+      const roomCode = safeRoom?.room_code?.toLowerCase() || "";
+
       return (
         userName.includes(searchTerm) ||
         studentId.includes(searchTerm) ||
         roomName.includes(searchTerm) ||
         roomCode.includes(searchTerm)
-      )
-    })
+      );
+    });
   }
 
   // Ensure ALL returns have valid room and user objects to prevent frontend crashes
-  bookings = bookings.map(booking => {
-    const safeRoom = Array.isArray(booking.room) ? booking.room[0] : booking.room
-    const safeUser = Array.isArray(booking.user) ? booking.user[0] : booking.user
+  bookings = bookings.map((booking) => {
+    const safeRoom = Array.isArray(booking.room)
+      ? booking.room[0]
+      : booking.room;
+    const safeUser = Array.isArray(booking.user)
+      ? booking.user[0]
+      : booking.user;
+    const safeDepartment = Array.isArray(safeUser?.department)
+      ? safeUser.department[0]
+      : safeUser?.department;
+
     return {
       ...booking,
-      room: safeRoom || { name: '未知空間', room_code: '' },
-      user: safeUser || { full_name: '未知使用者', student_id: '', username: '', department: null }
-    }
-  })
+      room: safeRoom || { name: "未知空間", room_code: "" },
+      user: safeUser
+        ? { ...safeUser, department: safeDepartment || null }
+        : {
+            full_name: "未知使用者",
+            student_id: "",
+            username: "",
+            department: null,
+          },
+    };
+  });
 
   // Sort: pending first, then by start_time descending (newest time first)
   bookings.sort((a, b) => {
     // First, sort by status: pending first
-    if (a.status === 'pending' && b.status !== 'pending') return -1
-    if (a.status !== 'pending' && b.status === 'pending') return 1
-    
-    // If same status (both pending or both not pending), sort by start_time descending (newest first)
-    const timeA = new Date(a.start_time).getTime()
-    const timeB = new Date(b.start_time).getTime()
-    return timeB - timeA  // Descending order (newest first)
-  })
+    if (a.status === "pending" && b.status !== "pending") return -1;
+    if (a.status !== "pending" && b.status === "pending") return 1;
 
-  return bookings
+    // If same status (both pending or both not pending), sort by start_time descending (newest first)
+    const timeA = new Date(a.start_time).getTime();
+    const timeB = new Date(b.start_time).getTime();
+    return timeB - timeA; // Descending order (newest first)
+  });
+
+  return bookings;
 }
 
 // Keep the old function for backward compatibility
 export async function getPendingBookings(): Promise<AdminBooking[]> {
-  return getAdminBookings({ status: 'pending' })
+  return getAdminBookings({ status: "pending" });
 }
-
