@@ -1,16 +1,16 @@
-import { Download, Eye, FileText } from "lucide-react"
+import { Download, Eye, FileText } from "lucide-react";
 
-import type { DocumentDownloadFile } from "@/app/actions/document-downloads"
-import { Button } from "@/components/ui/button"
+import type { DocumentDownloadFile } from "@/app/actions/document-downloads";
+import { Button } from "@/components/ui/button";
 
 type DocumentDownloadListProps = {
-  files: DocumentDownloadFile[]
-}
+  files: DocumentDownloadFile[];
+};
 
 function formatFileSize(size: number) {
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
 export function DocumentDownloadList({ files }: DocumentDownloadListProps) {
@@ -19,7 +19,7 @@ export function DocumentDownloadList({ files }: DocumentDownloadListProps) {
       <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
         目前尚無可下載文件。
       </div>
-    )
+    );
   }
 
   return (
@@ -57,5 +57,5 @@ export function DocumentDownloadList({ files }: DocumentDownloadListProps) {
         </div>
       ))}
     </div>
-  )
+  );
 }

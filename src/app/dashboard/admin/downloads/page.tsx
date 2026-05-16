@@ -1,28 +1,28 @@
-import { redirect } from "next/navigation"
+import { redirect } from "next/navigation";
 
-import { getAdminDocumentDownloadContent } from "@/app/actions/document-downloads"
-import { createClient } from "@/utils/supabase/server"
-import { DocumentDownloadsClient } from "./document-downloads-client"
+import { getAdminDocumentDownloadContent } from "@/app/actions/document-downloads";
+import { createClient } from "@/utils/supabase/server";
+import { DocumentDownloadsClient } from "./document-downloads-client";
 
 export default async function AdminDocumentDownloadsPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login")
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single()
+    .single();
 
   if (profile?.role !== "admin") {
-    redirect("/dashboard")
+    redirect("/dashboard");
   }
 
-  const content = await getAdminDocumentDownloadContent()
+  const content = await getAdminDocumentDownloadContent();
 
   return (
     <div className="space-y-6">
@@ -34,5 +34,5 @@ export default async function AdminDocumentDownloadsPage() {
       </div>
       <DocumentDownloadsClient initialContent={content} />
     </div>
-  )
+  );
 }

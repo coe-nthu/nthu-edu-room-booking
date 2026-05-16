@@ -1,9 +1,15 @@
-import { getDocumentDownloadContent } from "@/app/actions/document-downloads"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { DocumentDownloadList } from "./document-download-list"
+import { getDocumentDownloadContent } from "@/app/actions/document-downloads";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { DocumentDownloadList } from "./document-download-list";
 
 export default async function DownloadsPage() {
-  const content = await getDocumentDownloadContent()
+  const content = await getDocumentDownloadContent();
 
   return (
     <div className="space-y-6">
@@ -26,5 +32,5 @@ export default async function DownloadsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

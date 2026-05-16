@@ -1,132 +1,154 @@
-"use client"
+"use client";
 
-import { useRef, useState, type FormEvent } from "react"
-import { Eye, EyeOff, Loader2, Save, Trash2, Upload } from "lucide-react"
-import { toast } from "sonner"
+import { useRef, useState, type FormEvent } from "react";
+import { Eye, EyeOff, Loader2, Save, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 
-import type { DocumentDownloadContent, DocumentDownloadFile } from "@/app/actions/document-downloads"
+import type {
+  DocumentDownloadContent,
+  DocumentDownloadFile,
+} from "@/app/actions/document-downloads";
 import {
   deleteDocumentDownloadFile,
   updateDocumentDownloadFile,
   updateDocumentDownloadText,
   uploadDocumentDownloadFile,
-} from "@/app/actions/document-downloads"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/app/actions/document-downloads";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type DocumentDownloadsClientProps = {
-  initialContent: DocumentDownloadContent
-}
+  initialContent: DocumentDownloadContent;
+};
 
 function formatFileSize(size: number) {
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsClientProps) {
-  const [body, setBody] = useState(initialContent.body)
-  const [files, setFiles] = useState<DocumentDownloadFile[]>(initialContent.files)
-  const [title, setTitle] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [savingText, setSavingText] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [updatingFileId, setUpdatingFileId] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+export function DocumentDownloadsClient({
+  initialContent,
+}: DocumentDownloadsClientProps) {
+  const [body, setBody] = useState(initialContent.body);
+  const [files, setFiles] = useState<DocumentDownloadFile[]>(
+    initialContent.files,
+  );
+  const [title, setTitle] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [savingText, setSavingText] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [updatingFileId, setUpdatingFileId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveText = async () => {
-    setSavingText(true)
+    setSavingText(true);
     try {
-      await updateDocumentDownloadText(body)
-      toast.success("頁面文字已更新")
+      await updateDocumentDownloadText(body);
+      toast.success("頁面文字已更新");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "更新失敗")
+      toast.error(error instanceof Error ? error.message : "更新失敗");
     } finally {
-      setSavingText(false)
+      setSavingText(false);
     }
-  }
+  };
 
   const handleUpload = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!selectedFile) {
-      toast.error("請選擇檔案")
-      return
+      toast.error("請選擇檔案");
+      return;
     }
 
-    setUploading(true)
+    setUploading(true);
     try {
-      const formData = new FormData()
-      formData.append("file", selectedFile)
-      formData.append("title", title)
-      const uploadedFile = await uploadDocumentDownloadFile(formData)
-      toast.success("文件已上傳")
-      setFiles((currentFiles) => [uploadedFile, ...currentFiles])
-      setTitle("")
-      setSelectedFile(null)
-      if (fileInputRef.current) fileInputRef.current.value = ""
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("title", title);
+      const uploadedFile = await uploadDocumentDownloadFile(formData);
+      toast.success("文件已上傳");
+      setFiles((currentFiles) => [uploadedFile, ...currentFiles]);
+      setTitle("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "上傳失敗")
+      toast.error(error instanceof Error ? error.message : "上傳失敗");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const handleToggleVisible = async (file: DocumentDownloadFile) => {
-    setUpdatingFileId(file.id)
+    setUpdatingFileId(file.id);
     try {
-      await updateDocumentDownloadFile(file.id, { is_visible: !file.is_visible })
+      await updateDocumentDownloadFile(file.id, {
+        is_visible: !file.is_visible,
+      });
       setFiles((currentFiles) =>
         currentFiles.map((item) =>
-          item.id === file.id ? { ...item, is_visible: !file.is_visible } : item,
+          item.id === file.id
+            ? { ...item, is_visible: !file.is_visible }
+            : item,
         ),
-      )
-      toast.success(file.is_visible ? "已隱藏文件" : "已公開文件")
+      );
+      toast.success(file.is_visible ? "已隱藏文件" : "已公開文件");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "更新失敗")
+      toast.error(error instanceof Error ? error.message : "更新失敗");
     } finally {
-      setUpdatingFileId(null)
+      setUpdatingFileId(null);
     }
-  }
+  };
 
-  const handleRename = async (file: DocumentDownloadFile, nextTitle: string) => {
-    const trimmedTitle = nextTitle.trim()
-    if (!trimmedTitle || trimmedTitle === file.title) return
+  const handleRename = async (
+    file: DocumentDownloadFile,
+    nextTitle: string,
+  ) => {
+    const trimmedTitle = nextTitle.trim();
+    if (!trimmedTitle || trimmedTitle === file.title) return;
 
-    setUpdatingFileId(file.id)
+    setUpdatingFileId(file.id);
     try {
-      await updateDocumentDownloadFile(file.id, { title: trimmedTitle })
+      await updateDocumentDownloadFile(file.id, { title: trimmedTitle });
       setFiles((currentFiles) =>
         currentFiles.map((item) =>
           item.id === file.id ? { ...item, title: trimmedTitle } : item,
         ),
-      )
-      toast.success("文件名稱已更新")
+      );
+      toast.success("文件名稱已更新");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "更新失敗")
+      toast.error(error instanceof Error ? error.message : "更新失敗");
     } finally {
-      setUpdatingFileId(null)
+      setUpdatingFileId(null);
     }
-  }
+  };
 
   const handleDelete = async (file: DocumentDownloadFile) => {
-    const confirmed = window.confirm(`確定要刪除「${file.title}」嗎？`)
-    if (!confirmed) return
+    const confirmed = window.confirm(`確定要刪除「${file.title}」嗎？`);
+    if (!confirmed) return;
 
-    setUpdatingFileId(file.id)
+    setUpdatingFileId(file.id);
     try {
-      await deleteDocumentDownloadFile(file.id)
-      setFiles((currentFiles) => currentFiles.filter((item) => item.id !== file.id))
-      toast.success("文件已刪除")
+      await deleteDocumentDownloadFile(file.id);
+      setFiles((currentFiles) =>
+        currentFiles.filter((item) => item.id !== file.id),
+      );
+      toast.success("文件已刪除");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "刪除失敗")
+      toast.error(error instanceof Error ? error.message : "刪除失敗");
     } finally {
-      setUpdatingFileId(null)
+      setUpdatingFileId(null);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -159,11 +181,15 @@ export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsCli
         <CardHeader>
           <CardTitle>上傳文件</CardTitle>
           <CardDescription>
-            上傳後會立即出現在公開下載列表中，未登入訪客也能查看與下載。單檔上限 50 MB。
+            上傳後會立即出現在公開下載列表中，未登入訪客也能查看與下載。單檔上限
+            50 MB。
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpload} className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+          <form
+            onSubmit={handleUpload}
+            className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end"
+          >
             <div className="space-y-2">
               <Label htmlFor="document-title">顯示名稱</Label>
               <Input
@@ -179,7 +205,9 @@ export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsCli
                 id="document-file"
                 ref={fileInputRef}
                 type="file"
-                onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+                onChange={(event) =>
+                  setSelectedFile(event.target.files?.[0] || null)
+                }
               />
             </div>
             <Button type="submit" disabled={uploading}>
@@ -205,17 +233,21 @@ export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsCli
           {files.length > 0 ? (
             <div className="divide-y rounded-md border">
               {files.map((file) => {
-                const isUpdating = updatingFileId === file.id
+                const isUpdating = updatingFileId === file.id;
 
                 return (
                   <div key={file.id} className="space-y-3 p-4">
                     <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
                       <div className="space-y-2">
-                        <Label htmlFor={`file-title-${file.id}`}>顯示名稱</Label>
+                        <Label htmlFor={`file-title-${file.id}`}>
+                          顯示名稱
+                        </Label>
                         <Input
                           id={`file-title-${file.id}`}
                           defaultValue={file.title}
-                          onBlur={(event) => handleRename(file, event.target.value)}
+                          onBlur={(event) =>
+                            handleRename(file, event.target.value)
+                          }
                           disabled={isUpdating}
                         />
                         <p className="text-xs text-muted-foreground">
@@ -224,7 +256,11 @@ export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsCli
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button asChild variant="outline" size="sm">
-                          <a href={file.file_url} target="_blank" rel="noreferrer">
+                          <a
+                            href={file.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             <Eye className="mr-2 h-4 w-4" />
                             預覽
                           </a>
@@ -258,7 +294,7 @@ export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsCli
                       </div>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           ) : (
@@ -269,5 +305,5 @@ export function DocumentDownloadsClient({ initialContent }: DocumentDownloadsCli
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
