@@ -217,8 +217,8 @@ export function BookingList({
                     const fullName = booking.room.room_code
                       ? `(${booking.room.room_code})${booking.room.name}`
                       : booking.room.name;
-                    return fullName.length > 10
-                      ? `${fullName.slice(0, 10)}...`
+                    return fullName.length > 14
+                      ? `${fullName.slice(0, 14)}...`
                       : fullName;
                   })()}
                 </TableCell>
