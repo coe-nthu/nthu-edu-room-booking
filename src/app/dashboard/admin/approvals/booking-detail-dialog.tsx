@@ -81,7 +81,7 @@ export function BookingDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>預約詳細資訊</DialogTitle>
           <DialogDescription>查看完整的預約內容與處理狀態</DialogDescription>

@@ -75,7 +75,7 @@ export function ApproverDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>預約審核詳情</DialogTitle>
           <DialogDescription>查看完整的預約內容與審核進度</DialogDescription>
