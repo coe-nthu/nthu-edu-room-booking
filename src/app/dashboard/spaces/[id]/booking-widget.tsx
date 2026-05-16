@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { CheckCircle2, Info, Loader2, LogIn } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -45,9 +46,6 @@ type BookingWidgetProps = {
   onChange: (slot: { start: Date; end: Date } | null) => void;
 };
 
-import { useEffect } from "react";
-// ... imports ...
-
 export function BookingWidget({
   room,
   semesters,
@@ -60,6 +58,8 @@ export function BookingWidget({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [purpose, setPurpose] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasRestoredPendingBooking, setHasRestoredPendingBooking] =
+    useState(false);
 
   // Restore booking data from localStorage if available and user is logged in
   useEffect(() => {
@@ -85,6 +85,7 @@ export function BookingWidget({
           // If not logged in, just filling the form is enough (they will hit reserve again)
           if (user) {
             setIsDialogOpen(true);
+            setHasRestoredPendingBooking(true);
             // Clear storage after successfully restoring
             localStorage.removeItem(`pendingBooking_${room.id}`);
           }
@@ -96,12 +97,8 @@ export function BookingWidget({
     }
   }, [user, loading, room.id, onChange]);
 
-  const handleReserveClick = () => {
-    // Removed user check here to allow guests to click reserve and enter details
-    if (!selectedSlot) {
-      toast.error("請先選擇預約時間");
-      return;
-    }
+  const getBookingValidationMessage = () => {
+    if (!selectedSlot) return "請先選擇預約時間";
 
     const validation = validateBookingRules(
       selectedSlot.start,
@@ -112,41 +109,72 @@ export function BookingWidget({
       isAdmin,
     );
 
-    if (!validation.isValid) {
-      toast.error(validation.message);
+    return validation.isValid ? null : validation.message;
+  };
+
+  const handleReserveClick = () => {
+    const validationMessage = getBookingValidationMessage();
+
+    if (validationMessage) {
+      toast.error(validationMessage);
       return;
     }
 
-    setIsDialogOpen(true);
-  };
+    if (loading) {
+      toast.error("正在確認登入狀態，請稍候");
+      return;
+    }
 
-  const handleSubmit = async () => {
-    // Check auth here instead
-    if (!user) {
-      // Save state to localStorage
-      if (selectedSlot) {
-        const bookingData = {
-          start: selectedSlot.start.toISOString(),
-          end: selectedSlot.end.toISOString(),
-          purpose,
-        };
-        localStorage.setItem(
-          `pendingBooking_${room.id}`,
-          JSON.stringify(bookingData),
-        );
-      }
+    if (!user && selectedSlot) {
+      const bookingData = {
+        start: selectedSlot.start.toISOString(),
+        end: selectedSlot.end.toISOString(),
+        purpose: purpose.trim(),
+      };
+      localStorage.setItem(
+        `pendingBooking_${room.id}`,
+        JSON.stringify(bookingData),
+      );
 
-      toast.error("請先登入以完成預約");
-      // Redirect to login with return path
-      // Use window.location.pathname to get current path including id
+      toast.error("請先登入以繼續預約，已保留您選擇的時間");
       const returnUrl = window.location.pathname;
       router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
-    if (!selectedSlot) return;
+    setHasRestoredPendingBooking(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    const validationMessage = getBookingValidationMessage();
+
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+
     if (purpose.trim().length < 5) {
       toast.error("事由至少需要 5 個字");
+      return;
+    }
+
+    if (!selectedSlot) return;
+
+    if (!user) {
+      const bookingData = {
+        start: selectedSlot.start.toISOString(),
+        end: selectedSlot.end.toISOString(),
+        purpose: purpose.trim(),
+      };
+      localStorage.setItem(
+        `pendingBooking_${room.id}`,
+        JSON.stringify(bookingData),
+      );
+
+      toast.error("請先登入以送出申請，已保留您填寫的預約資料");
+      const returnUrl = window.location.pathname;
+      router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
@@ -161,7 +189,7 @@ export function BookingWidget({
           roomId: room.id,
           startTime: selectedSlot.start.toISOString(),
           endTime: selectedSlot.end.toISOString(),
-          purpose: purpose,
+          purpose: purpose.trim(),
         }),
       });
 
@@ -172,6 +200,7 @@ export function BookingWidget({
 
       toast.success("預約申請已送出");
       setIsDialogOpen(false);
+      setHasRestoredPendingBooking(false);
       setPurpose("");
       onChange(null);
       // Clear any stored booking data just in case
@@ -251,6 +280,8 @@ export function BookingWidget({
   const endTimeStr = selectedSlot ? format(selectedSlot.end, "HH:mm") : "";
 
   const isMeetingRoom = room.room_type === "Meeting";
+  const isGuest = !loading && !user;
+  const submitButtonLabel = isGuest ? "登入後送出申請" : "確認送出";
 
   return (
     <>
@@ -370,6 +401,11 @@ export function BookingWidget({
           >
             預約
           </Button>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {isGuest
+              ? "未登入也可以先選擇時間；按下預約後會先帶你登入，回來再填寫事由並確認送出。"
+              : "送出前系統會重新檢查時段是否仍可借用。"}
+          </p>
         </div>
       </div>
 
@@ -378,14 +414,53 @@ export function BookingWidget({
           <DialogHeader>
             <DialogTitle>確認預約資訊</DialogTitle>
             <DialogDescription>
-              {room.name} <br />
-              {selectedSlot &&
-                format(selectedSlot.start, "yyyy/MM/dd HH:mm")} -{" "}
-              {selectedSlot && format(selectedSlot.end, "HH:mm")}
+              {hasRestoredPendingBooking
+                ? "已帶入登入前選擇的時間與事由，請再次確認後送出。"
+                : "請確認空間、時間與借用事由。"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <div className="font-medium text-foreground">{room.name}</div>
+              <div className="mt-1 text-muted-foreground">
+                {selectedSlot && format(selectedSlot.start, "yyyy/MM/dd HH:mm")}{" "}
+                - {selectedSlot && format(selectedSlot.end, "HH:mm")}
+              </div>
+            </div>
+
+            {hasRestoredPendingBooking ? (
+              <div className="flex gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <div className="space-y-1">
+                  <div className="font-medium">已保留剛剛填寫的內容</div>
+                  <div className="leading-relaxed">
+                    系統不會自動送出登入前的申請；請確認時段與事由後，再按「確認送出」。
+                  </div>
+                </div>
+              </div>
+            ) : isGuest ? (
+              <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <div className="space-y-1">
+                  <div className="font-medium">送出申請前需要登入</div>
+                  <div className="leading-relaxed">
+                    按下「登入後送出申請」後會先帶你登入，回來時會保留時間與事由，並讓你重新確認後再送出。
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100">
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="leading-relaxed">
+                  送出後會建立預約申請；若登入期間時段已被占用，系統會提醒你重新選擇。
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-2">
               <Label htmlFor="purpose">借用事由</Label>
               <Textarea
@@ -408,10 +483,24 @@ export function BookingWidget({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || loading}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              {isSubmitting ? "提交中..." : "確認預約"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  提交中...
+                </>
+              ) : isGuest ? (
+                <>
+                  <LogIn className="h-4 w-4" />
+                  {submitButtonLabel}
+                </>
+              ) : loading ? (
+                "確認登入狀態..."
+              ) : (
+                submitButtonLabel
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

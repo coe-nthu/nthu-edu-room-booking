@@ -122,7 +122,9 @@ export default function LoginClient({
     if (params.get("reset") !== "expired") return;
 
     setAuthView("sign_in");
-    setResetDialogNotice("重設密碼連結無效或已過期，請重新輸入電子郵件並寄送新的重設信件。");
+    setResetDialogNotice(
+      "重設密碼連結無效或已過期，請重新輸入電子郵件並寄送新的重設信件。",
+    );
     setIsDialogOpen(true);
     toast.error("重設密碼連結無效或已過期，請重新寄送重設信件。");
 
