@@ -68,6 +68,7 @@ export function BookingWidget({
   const [recurrenceFrequency, setRecurrenceFrequency] =
     useState<RecurrenceFrequency>("none");
   const [repeatUntil, setRepeatUntil] = useState<Date>();
+  const [showAllRecurringDates, setShowAllRecurringDates] = useState(false);
 
   // Restore booking data from localStorage if available and user is logged in
   useEffect(() => {
@@ -351,7 +352,9 @@ export function BookingWidget({
   const isGuest = !loading && !user;
   const submitButtonLabel = isGuest ? "登入後送出申請" : "確認送出";
   const recurringValidationMessage = getRecurringValidationMessage();
-  const previewSlots = recurringSlots.slice(0, 4);
+  const previewSlots = showAllRecurringDates
+    ? recurringSlots
+    : recurringSlots.slice(0, 4);
 
   return (
     <>
@@ -521,6 +524,7 @@ export function BookingWidget({
                     className="h-auto py-2 text-sm"
                     onClick={() => {
                       setRecurrenceFrequency(frequency);
+                      setShowAllRecurringDates(false);
                       if (frequency === "none") setRepeatUntil(undefined);
                     }}
                   >
@@ -551,7 +555,10 @@ export function BookingWidget({
                       <Calendar
                         mode="single"
                         selected={repeatUntil}
-                        onSelect={setRepeatUntil}
+                        onSelect={(date) => {
+                          setRepeatUntil(date);
+                          setShowAllRecurringDates(false);
+                        }}
                         initialFocus
                         disabled={(date) =>
                           selectedStartDay ? date < selectedStartDay : true
@@ -575,18 +582,33 @@ export function BookingWidget({
                 ) : recurrenceFrequency === "none" ? (
                   "這次只會建立 1 筆申請。"
                 ) : (
-                  <>
-                    共 {recurringSlots.length} 筆申請
-                    {previewSlots.length > 0 && (
-                      <>
-                        ：
-                        {previewSlots
-                          .map((slot) => format(slot.start, "M/d"))
-                          .join("、")}
-                        {recurringSlots.length > previewSlots.length ? "…" : ""}
-                      </>
+                  <div className="space-y-2">
+                    <div>
+                      共 {recurringSlots.length} 筆申請
+                      {previewSlots.length > 0 && (
+                        <>
+                          ：
+                          {previewSlots
+                            .map((slot) => format(slot.start, "M/d"))
+                            .join("、")}
+                        </>
+                      )}
+                    </div>
+                    {recurringSlots.length > 4 && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-sm"
+                        onClick={() =>
+                          setShowAllRecurringDates((current) => !current)
+                        }
+                      >
+                        {showAllRecurringDates
+                          ? "收合日期"
+                          : `展開全部 ${recurringSlots.length} 個日期`}
+                      </Button>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>

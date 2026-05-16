@@ -245,4 +245,46 @@ describe("BookingWidget", () => {
     );
     expect(toastSuccessMock).toHaveBeenCalledWith("已送出 2 筆預約申請");
   });
+
+  it("lets users expand the full recurring date list", async () => {
+    const user = userEvent.setup();
+    useUserMock.mockReturnValue({
+      user: { id: "user-1", email: "user@example.com" },
+      loading: false,
+    });
+    localStorage.setItem(
+      "pendingBooking_room-1",
+      JSON.stringify({
+        start: selectedSlot.start.toISOString(),
+        end: selectedSlot.end.toISOString(),
+        purpose: "社團活動討論",
+        recurrenceFrequency: "weekly",
+        repeatUntil: "2026-07-02T16:00:00.000Z",
+      }),
+    );
+
+    render(
+      <BookingWidget
+        room={room()}
+        semesters={semesters}
+        isAdmin={false}
+        selectedSlot={selectedSlot}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText("共 6 筆申請：5/28、6/4、6/11、6/18"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("6/25")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "展開全部 6 個日期" }));
+
+    expect(
+      screen.getByText("共 6 筆申請：5/28、6/4、6/11、6/18、6/25、7/2"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "收合日期" }),
+    ).toBeInTheDocument();
+  });
 });
