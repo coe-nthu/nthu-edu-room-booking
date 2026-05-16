@@ -49,6 +49,7 @@ export type Booking = {
   purpose: string | null;
   user: {
     full_name: string;
+    email: string;
     student_id: string | null;
     department: {
       name: string;

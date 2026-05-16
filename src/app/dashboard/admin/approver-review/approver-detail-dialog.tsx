@@ -117,6 +117,10 @@ export function ApproverDetailDialog({
                 </Label>
                 <div>{booking.user.student_id || "-"}</div>
               </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">信箱</Label>
+                <div>{booking.user.email || "-"}</div>
+              </div>
               <div className="col-span-2">
                 <Label className="text-muted-foreground text-xs">
                   單位/系所

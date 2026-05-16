@@ -19,6 +19,7 @@ export type ApprovalStepInfo = {
 };
 
 export type AdminBooking = Booking & {
+  user_id?: string;
   user: {
     full_name: string;
     email: string;
@@ -47,6 +48,7 @@ export async function getAdminBookings(filters?: {
 
   let query = supabase.from("bookings").select(`
       id,
+      user_id,
       room_id,
       start_time,
       end_time,
@@ -96,6 +98,22 @@ export async function getAdminBookings(filters?: {
   }
 
   let bookings = (data as unknown as AdminBooking[]) || [];
+
+  const userIds = [
+    ...new Set(bookings.map((booking) => booking.user_id).filter(Boolean)),
+  ];
+  const emailByUserId = new Map<string, string>();
+  if (userIds.length > 0) {
+    const {
+      data: { users },
+    } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+    for (const user of users) {
+      if (user.email && userIds.includes(user.id)) {
+        emailByUserId.set(user.id, user.email);
+      }
+    }
+  }
 
   // Enrich bookings with approval steps data
   if (bookings.length > 0) {
@@ -185,9 +203,16 @@ export async function getAdminBookings(filters?: {
       ...booking,
       room: safeRoom || { name: "未知空間", room_code: "" },
       user: safeUser
-        ? { ...safeUser, department: safeDepartment || null }
+        ? {
+            ...safeUser,
+            email: booking.user_id
+              ? emailByUserId.get(booking.user_id) || ""
+              : "",
+            department: safeDepartment || null,
+          }
         : {
             full_name: "未知使用者",
+            email: "",
             student_id: "",
             username: "",
             department: null,

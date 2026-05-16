@@ -36,6 +36,7 @@ export type ApproverBookingItem = {
     room: { name: string; room_code: string | null };
     user: {
       full_name: string;
+      email: string;
       student_id: string | null;
       department: { name: string } | null;
     };

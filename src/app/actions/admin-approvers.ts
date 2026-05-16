@@ -406,6 +406,7 @@ export async function getApproverBookings(): Promise<
   {
     booking: {
       id: string;
+      user_id: string;
       start_time: string;
       end_time: string;
       status: string;
@@ -418,6 +419,7 @@ export async function getApproverBookings(): Promise<
       room: { name: string; room_code: string | null };
       user: {
         full_name: string;
+        email: string;
         student_id: string | null;
         department: { name: string } | null;
       };
@@ -447,7 +449,7 @@ export async function getApproverBookings(): Promise<
     .from("bookings")
     .select(
       `
-      id, start_time, end_time, status, purpose, created_at,
+      id, user_id, start_time, end_time, status, purpose, created_at,
       recurrence_group_id, recurrence_frequency, recurrence_until,
       room:rooms (name, room_code),
       user:profiles!bookings_user_id_fkey (
@@ -460,6 +462,20 @@ export async function getApproverBookings(): Promise<
     .order("created_at", { ascending: false });
 
   if (bookingsError || !bookings) return [];
+
+  const userIds = [...new Set(bookings.map((booking) => booking.user_id))];
+  const emailByUserId = new Map<string, string>();
+  if (userIds.length > 0) {
+    const {
+      data: { users },
+    } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+    for (const authUser of users) {
+      if (authUser.email && userIds.includes(authUser.id)) {
+        emailByUserId.set(authUser.id, authUser.email);
+      }
+    }
+  }
 
   const recurrenceGroupIds = bookings
     .map((booking) => booking.recurrence_group_id)
@@ -502,6 +518,7 @@ export async function getApproverBookings(): Promise<
   type ApproverBookingResult = {
     booking: {
       id: string;
+      user_id: string;
       start_time: string;
       end_time: string;
       status: string;
@@ -514,6 +531,7 @@ export async function getApproverBookings(): Promise<
       room: { name: string; room_code: string | null };
       user: {
         full_name: string;
+        email: string;
         student_id: string | null;
         department: { name: string } | null;
       };
@@ -541,9 +559,19 @@ export async function getApproverBookings(): Promise<
         room: safeRoom || { name: "未知空間", room_code: "" },
         user: safeUser || {
           full_name: "未知使用者",
+          email: "",
           student_id: "",
           department: null,
         },
+        ...(safeUser && {
+          user: {
+            ...safeUser,
+            email:
+              typeof b.user_id === "string"
+                ? emailByUserId.get(b.user_id) || ""
+                : "",
+          },
+        }),
         recurring_slots:
           typeof b.recurrence_group_id === "string"
             ? sortRecurringSlots(
