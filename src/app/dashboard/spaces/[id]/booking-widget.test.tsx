@@ -101,7 +101,7 @@ describe("BookingWidget", () => {
     expect(screen.getByRole("button", { name: "預約" })).toBeDisabled();
   });
 
-  it("lets guests configure the request before login", async () => {
+  it("redirects guests to login from the reserve button", async () => {
     const user = userEvent.setup();
 
     render(
@@ -116,12 +116,13 @@ describe("BookingWidget", () => {
 
     await user.click(screen.getByRole("button", { name: "預約" }));
 
-    expect(await screen.findByText("確認預約資訊")).toBeInTheDocument();
-    expect(screen.getByText("送出申請前需要登入")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /登入後送出申請/ }),
-    ).toBeInTheDocument();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(screen.queryByText("確認預約資訊")).not.toBeInTheDocument();
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "請先登入以繼續預約，已保留您選擇的時間",
+    );
+    expect(pushMock).toHaveBeenCalledWith(
+      "/login?next=%2Fdashboard%2Fspaces%2Froom-1",
+    );
   });
 
   it("opens confirmation directly for authenticated users", async () => {
@@ -244,6 +245,40 @@ describe("BookingWidget", () => {
       }),
     );
     expect(toastSuccessMock).toHaveBeenCalledWith("已送出 2 筆預約申請");
+  });
+
+  it("opens repeat-until selection on the chosen booking month and only allows later dates", async () => {
+    const user = userEvent.setup();
+    const juneSlot = {
+      start: new Date("2026-06-08T09:00:00+08:00"),
+      end: new Date("2026-06-08T10:00:00+08:00"),
+    };
+    useUserMock.mockReturnValue({
+      user: { id: "user-1", email: "user@example.com" },
+      loading: false,
+    });
+
+    render(
+      <BookingWidget
+        room={room()}
+        semesters={semesters}
+        isAdmin={false}
+        selectedSlot={juneSlot}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "預約" }));
+    await user.click(screen.getByRole("button", { name: "每週重複" }));
+    await user.click(screen.getByRole("button", { name: "選擇結束日期" }));
+
+    expect(screen.getByText("June 2026")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Monday, June 8th, 2026" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Tuesday, June 9th, 2026" }),
+    ).toBeEnabled();
   });
 
   it("lets users expand the full recurring date list", async () => {

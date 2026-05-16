@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { CheckCircle2, Info, Loader2, LogIn, Repeat2 } from "lucide-react";
+import { Info, Loader2, LogIn, Repeat2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -157,9 +157,9 @@ export function BookingWidget({
       recurrenceFrequency !== "none" &&
       repeatUntil &&
       selectedStartDay &&
-      repeatUntil < selectedStartDay
+      repeatUntil <= selectedStartDay
     ) {
-      return "結束日期不可早於第一個借用日期";
+      return "結束日期必須晚於第一個借用日期";
     }
 
     for (const slot of recurringSlots) {
@@ -207,6 +207,14 @@ export function BookingWidget({
 
     if (loading) {
       toast.error("正在確認登入狀態，請稍候");
+      return;
+    }
+
+    if (!user) {
+      savePendingBookingDraft();
+      toast.error("請先登入以繼續預約，已保留您選擇的時間");
+      const returnUrl = window.location.pathname;
+      router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
@@ -555,13 +563,16 @@ export function BookingWidget({
                       <Calendar
                         mode="single"
                         selected={repeatUntil}
+                        defaultMonth={
+                          repeatUntil ?? selectedStartDay ?? undefined
+                        }
                         onSelect={(date) => {
                           setRepeatUntil(date);
                           setShowAllRecurringDates(false);
                         }}
                         initialFocus
                         disabled={(date) =>
-                          selectedStartDay ? date < selectedStartDay : true
+                          selectedStartDay ? date <= selectedStartDay : true
                         }
                       />
                     </PopoverContent>
@@ -613,7 +624,7 @@ export function BookingWidget({
               </div>
             </div>
 
-            {hasRestoredPendingBooking ? (
+            {hasRestoredPendingBooking && (
               <div className="flex gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <div className="space-y-1">
@@ -621,26 +632,6 @@ export function BookingWidget({
                   <div className="leading-relaxed">
                     系統不會自動送出登入前的申請；請確認時段與事由後，再按「確認送出」。
                   </div>
-                </div>
-              </div>
-            ) : isGuest ? (
-              <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <div className="space-y-1">
-                  <div className="font-medium">送出申請前需要登入</div>
-                  <div className="leading-relaxed">
-                    按下「登入後送出申請」後會先帶你登入，回來時會保留時間與事由，並讓你重新確認後再送出。
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100">
-                <CheckCircle2
-                  className="mt-0.5 h-4 w-4 shrink-0"
-                  aria-hidden="true"
-                />
-                <div className="leading-relaxed">
-                  送出後會建立預約申請；若登入期間時段已被占用，系統會提醒你重新選擇。
                 </div>
               </div>
             )}
