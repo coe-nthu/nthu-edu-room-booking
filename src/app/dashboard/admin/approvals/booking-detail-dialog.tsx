@@ -89,9 +89,20 @@ export function BookingDetailDialog({
 
         <div className="grid gap-4 py-2">
           {/* Status */}
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-sm">狀態</span>
-            {getStatusBadge(booking.status)}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-3 sm:justify-start">
+              <span className="font-semibold text-sm">狀態</span>
+              {getStatusBadge(booking.status)}
+            </div>
+            <ActionButtons
+              bookingId={booking.id}
+              status={booking.status}
+              hasMultiLevelApproval={booking.has_multi_level_approval}
+              onSuccess={(action) => {
+                onActionSuccess(booking.id, action);
+                onOpenChange(false);
+              }}
+            />
           </div>
 
           <Separator />
@@ -279,20 +290,6 @@ export function BookingDetailDialog({
                 </div>
               </>
             )}
-
-          <Separator />
-
-          <div className="flex justify-end pt-2">
-            <ActionButtons
-              bookingId={booking.id}
-              status={booking.status}
-              hasMultiLevelApproval={booking.has_multi_level_approval}
-              onSuccess={(action) => {
-                onActionSuccess(booking.id, action);
-                onOpenChange(false);
-              }}
-            />
-          </div>
         </div>
       </DialogContent>
     </Dialog>

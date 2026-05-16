@@ -83,9 +83,20 @@ export function ApproverDetailDialog({
 
         <div className="grid gap-4 py-2">
           {/* Status */}
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-sm">預約狀態</span>
-            {getBookingStatusBadge(booking.status)}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-3 sm:justify-start">
+              <span className="font-semibold text-sm">預約狀態</span>
+              {getBookingStatusBadge(booking.status)}
+            </div>
+            <ApproverActionButtons
+              bookingId={booking.id}
+              stepId={step.id}
+              status={step.status}
+              onSuccess={(action) => {
+                onActionSuccess(booking.id, action);
+                onOpenChange(false);
+              }}
+            />
           </div>
 
           <Separator />
@@ -240,20 +251,6 @@ export function ApproverDetailDialog({
                 </div>
               ))}
             </div>
-          </div>
-
-          <Separator />
-
-          <div className="flex justify-end pt-2">
-            <ApproverActionButtons
-              bookingId={booking.id}
-              stepId={step.id}
-              status={step.status}
-              onSuccess={(action) => {
-                onActionSuccess(booking.id, action);
-                onOpenChange(false);
-              }}
-            />
           </div>
         </div>
       </DialogContent>
