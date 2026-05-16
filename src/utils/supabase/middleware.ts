@@ -7,6 +7,7 @@ const publicPaths = [
   '/reset-password',
   '/dashboard/spaces',
   '/dashboard/rules',
+  '/dashboard/downloads',
   '/dashboard/report',
   '/dashboard/report/records',
 ]

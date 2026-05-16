@@ -8,6 +8,7 @@ import {
   User,
   LayoutDashboard,
   BookOpen,
+  FileDown,
   Users,
   Cog,
   AlertCircle,
@@ -50,6 +51,12 @@ const items = [
     url: "/dashboard/rules",
     icon: BookOpen,
     highlight: true,
+  },
+  {
+    title: "文件下載",
+    url: "/dashboard/downloads",
+    icon: FileDown,
+    highlight: false,
   },
   {
     title: "借用空間",
@@ -102,6 +109,11 @@ const adminItems = [
     title: "系統設定",
     url: "/dashboard/admin/settings",
     icon: Cog,
+  },
+  {
+    title: "文件下載設定",
+    url: "/dashboard/admin/downloads",
+    icon: FileDown,
   },
 ];
 
