@@ -257,6 +257,9 @@ export function BookingWidget({
         body: JSON.stringify({
           roomId: room.id,
           purpose: purpose.trim(),
+          recurrenceFrequency:
+            recurrenceFrequency === "none" ? null : recurrenceFrequency,
+          recurrenceUntil: repeatUntil?.toISOString() ?? null,
           slots: recurringSlots.map((slot) => ({
             startTime: slot.start.toISOString(),
             endTime: slot.end.toISOString(),

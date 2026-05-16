@@ -202,6 +202,9 @@ describe("POST /api/bookings", () => {
             expect.objectContaining({
               user_id: "user-1",
               status: "pending",
+              recurrence_group_id: null,
+              recurrence_frequency: null,
+              recurrence_until: null,
             }),
           ],
         ],
@@ -255,6 +258,8 @@ describe("POST /api/bookings", () => {
       bookingRequest({
         roomId: "11111111-1111-4111-8111-111111111111",
         purpose: "運科實驗",
+        recurrenceFrequency: "weekly",
+        recurrenceUntil: "2026-05-27T16:00:00.000Z",
         slots: [
           {
             startTime: "2026-05-20T01:00:00.000Z",
@@ -284,9 +289,13 @@ describe("POST /api/bookings", () => {
           [
             expect.objectContaining({
               start_time: "2026-05-20T01:00:00.000Z",
+              recurrence_frequency: "weekly",
+              recurrence_until: "2026-05-27T16:00:00.000Z",
             }),
             expect.objectContaining({
               start_time: "2026-05-27T01:00:00.000Z",
+              recurrence_frequency: "weekly",
+              recurrence_until: "2026-05-27T16:00:00.000Z",
             }),
           ],
         ],
@@ -296,12 +305,7 @@ describe("POST /api/bookings", () => {
       expect.objectContaining({
         table: "booking_approval_steps",
         method: "insert",
-        args: [
-          [
-            expect.objectContaining({ booking_id: "booking-1" }),
-            expect.objectContaining({ booking_id: "booking-2" }),
-          ],
-        ],
+        args: [[expect.objectContaining({ booking_id: "booking-1" })]],
       }),
     );
   });

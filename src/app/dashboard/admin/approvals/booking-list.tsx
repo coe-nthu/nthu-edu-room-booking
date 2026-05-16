@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { format } from "date-fns"
-import { zhTW } from "date-fns/locale"
+import { format } from "date-fns";
+import { zhTW } from "date-fns/locale";
 import {
   Table,
   TableBody,
@@ -9,205 +9,252 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { ActionButtons } from "./action-buttons"
-import { useState, useEffect } from "react"
-import { toTaipeiTime } from "@/lib/utils"
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { BookingDetailDialog } from "./booking-detail-dialog"
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ActionButtons } from "./action-buttons";
+import { useState, useEffect } from "react";
+import { toTaipeiTime } from "@/lib/utils";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookingDetailDialog } from "./booking-detail-dialog";
+import {
+  getRecurrenceSummary,
+  type RecurringBookingSlot,
+} from "@/lib/booking-series";
 
 export type ApprovalStepInfo = {
-  id: string
-  step_order: number
-  approver_id: string
-  label: string | null
-  status: 'pending' | 'approved' | 'rejected' | 'skipped'
-  decided_at: string | null
-  comment: string | null
+  id: string;
+  step_order: number;
+  approver_id: string;
+  label: string | null;
+  status: "pending" | "approved" | "rejected" | "skipped";
+  decided_at: string | null;
+  comment: string | null;
   approver?: {
-    full_name: string | null
-  }
-}
+    full_name: string | null;
+  };
+};
 
 export type Booking = {
-  id: string
-  start_time: string
-  end_time: string
-  created_at: string
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'cancelled_by_user'
-  purpose: string | null
+  id: string;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  status:
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "cancelled"
+    | "cancelled_by_user";
+  purpose: string | null;
   user: {
-    full_name: string
-    student_id: string | null
+    full_name: string;
+    student_id: string | null;
     department: {
-      name: string
-    } | null
-  }
+      name: string;
+    } | null;
+  };
   room: {
-    name: string
-    room_code: string | null
-  }
-  approval_steps?: ApprovalStepInfo[]
-  has_multi_level_approval?: boolean
-  current_approval_label?: string | null
-}
+    name: string;
+    room_code: string | null;
+  };
+  approval_steps?: ApprovalStepInfo[];
+  has_multi_level_approval?: boolean;
+  current_approval_label?: string | null;
+  recurrence_group_id?: string | null;
+  recurrence_frequency?: "daily" | "weekly" | null;
+  recurrence_until?: string | null;
+  recurring_slots?: RecurringBookingSlot[];
+};
 
 interface BookingListProps {
-  initialBookings: Booking[]
-  showHistory: boolean
+  initialBookings: Booking[];
+  showHistory: boolean;
 }
 
-type SortField = 'department' | 'room' | 'time' | 'created_at' | null
-type SortOrder = 'asc' | 'desc' | null
+type SortField = "department" | "room" | "time" | "created_at" | null;
+type SortOrder = "asc" | "desc" | null;
 
-export function BookingList({ initialBookings, showHistory }: BookingListProps) {
-  const [bookings, setBookings] = useState(initialBookings)
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
-  
+export function BookingList({
+  initialBookings,
+  showHistory,
+}: BookingListProps) {
+  const [bookings, setBookings] = useState(initialBookings);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
   // Sorting state
-  const [sortField, setSortField] = useState<SortField>(null)
-  const [sortOrder, setSortOrder] = useState<SortOrder>(null)
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
 
   useEffect(() => {
-    setBookings(initialBookings)
-  }, [initialBookings])
+    setBookings(initialBookings);
+  }, [initialBookings]);
 
-  const handleActionSuccess = (id: string, action: 'approve' | 'reject' | 'delete') => {
-    if (action === 'delete') {
-      setBookings(prev => prev.filter(b => b.id !== id))
+  const handleActionSuccess = (
+    id: string,
+    action: "approve" | "reject" | "delete",
+  ) => {
+    if (action === "delete") {
+      setBookings((prev) => prev.filter((b) => b.id !== id));
     } else {
-        // Update status for approve/reject without removing unless filtered out by page reload
-        // Since the page might not reload immediately, we can optimistically update
-        setBookings(prev => prev.map(b => {
-            if (b.id === id) {
-                return { 
-                    ...b, 
-                    status: action === 'approve' ? 'approved' : 'rejected' 
-                }
-            }
-            return b
-        }))
+      // Update status for approve/reject without removing unless filtered out by page reload
+      // Since the page might not reload immediately, we can optimistically update
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (b.id === id) {
+            return {
+              ...b,
+              status: action === "approve" ? "approved" : "rejected",
+            };
+          }
+          return b;
+        }),
+      );
     }
-  }
+  };
 
   const getStatusBadge = (booking: Booking) => {
-    const { status } = booking
+    const { status } = booking;
     switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-600">已核准</Badge>
-      case 'rejected':
-        return <Badge variant="destructive">已拒絕</Badge>
-      case 'pending':
+      case "approved":
+        return <Badge className="bg-green-600">已核准</Badge>;
+      case "rejected":
+        return <Badge variant="destructive">已拒絕</Badge>;
+      case "pending":
         if (booking.has_multi_level_approval && booking.approval_steps) {
-          const approved = booking.approval_steps.filter(s => s.status === 'approved' || s.status === 'skipped').length
-          const total = booking.approval_steps.length
-          const currentStep = booking.approval_steps.find(s => s.status === 'pending')
+          const approved = booking.approval_steps.filter(
+            (s) => s.status === "approved" || s.status === "skipped",
+          ).length;
+          const total = booking.approval_steps.length;
+          const currentStep = booking.approval_steps.find(
+            (s) => s.status === "pending",
+          );
           return (
             <div className="flex flex-col gap-0.5">
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
+              <Badge
+                variant="secondary"
+                className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs"
+              >
                 審核中 {approved}/{total}
               </Badge>
               {currentStep && (
-                <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={currentStep.label || `第 ${currentStep.step_order} 階`}>
+                <span
+                  className="text-[10px] text-muted-foreground truncate max-w-[100px]"
+                  title={currentStep.label || `第 ${currentStep.step_order} 階`}
+                >
                   → {currentStep.label || `第 ${currentStep.step_order} 階`}
-                  {currentStep.approver?.full_name && ` (${currentStep.approver.full_name})`}
+                  {currentStep.approver?.full_name &&
+                    ` (${currentStep.approver.full_name})`}
                 </span>
               )}
             </div>
-          )
+          );
         }
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">待審核</Badge>
-      case 'cancelled':
-      case 'cancelled_by_user':
-        return <Badge variant="outline" className="text-muted-foreground">已取消</Badge>
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+          >
+            待審核
+          </Badge>
+        );
+      case "cancelled":
+      case "cancelled_by_user":
+        return (
+          <Badge variant="outline" className="text-muted-foreground">
+            已取消
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>;
     }
-  }
+  };
 
   // Sorting logic
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       // Toggle order: null -> asc -> desc -> null
-      if (sortOrder === null) setSortOrder('asc')
-      else if (sortOrder === 'asc') setSortOrder('desc')
+      if (sortOrder === null) setSortOrder("asc");
+      else if (sortOrder === "asc") setSortOrder("desc");
       else {
-        setSortOrder(null)
-        setSortField(null)
+        setSortOrder(null);
+        setSortField(null);
       }
     } else {
-      setSortField(field)
-      setSortOrder('asc')
+      setSortField(field);
+      setSortOrder("asc");
     }
-  }
+  };
 
-  const filteredBookings = bookings.filter(booking => {
-    if (showHistory) return true
-    const endTime = new Date(booking.end_time)
-    const now = new Date()
-    return endTime >= now
-  })
+  const filteredBookings = bookings.filter((booking) => {
+    if (showHistory) return true;
+    const latestEndTime =
+      booking.recurring_slots?.at(-1)?.end_time ?? booking.end_time;
+    const endTime = new Date(latestEndTime);
+    const now = new Date();
+    return endTime >= now;
+  });
 
   // Apply sorting
   const sortedBookings = [...filteredBookings].sort((a, b) => {
     // Default sort: pending first, then by start_time descending
     if (!sortField || !sortOrder) {
       // First, sort by status: pending first
-      if (a.status === 'pending' && b.status !== 'pending') return -1
-      if (a.status !== 'pending' && b.status === 'pending') return 1
-      
+      if (a.status === "pending" && b.status !== "pending") return -1;
+      if (a.status !== "pending" && b.status === "pending") return 1;
+
       // If same status, sort by start_time descending (near time first)
-      const timeA = new Date(a.start_time).getTime()
-      const timeB = new Date(b.start_time).getTime()
-      return timeA - timeB   // Descending order (near time first)
+      const timeA = new Date(a.start_time).getTime();
+      const timeB = new Date(b.start_time).getTime();
+      return timeA - timeB; // Descending order (near time first)
     }
 
-    let comparison = 0
+    let comparison = 0;
     switch (sortField) {
-      case 'department':
-        const deptA = a.user.department?.name || ''
-        const deptB = b.user.department?.name || ''
-        comparison = deptA.localeCompare(deptB, "zh-TW")
-        break
-      case 'room':
+      case "department":
+        const deptA = a.user.department?.name || "";
+        const deptB = b.user.department?.name || "";
+        comparison = deptA.localeCompare(deptB, "zh-TW");
+        break;
+      case "room":
         // Sort by floor (B1F < 1F < 2F...), simplistic check based on room_code
         // Assuming room_code first char is floor number or 'B'
         const getFloorValue = (code: string | null) => {
-           if (!code) return 100 // No code, push to end
-           if (code.startsWith('B')) return -parseInt(code.slice(1,2)) || -0.5
-           return parseInt(code.slice(0,1)) || 100
-        }
-        const floorA = getFloorValue(a.room.room_code)
-        const floorB = getFloorValue(b.room.room_code)
-        
+          if (!code) return 100; // No code, push to end
+          if (code.startsWith("B")) return -parseInt(code.slice(1, 2)) || -0.5;
+          return parseInt(code.slice(0, 1)) || 100;
+        };
+        const floorA = getFloorValue(a.room.room_code);
+        const floorB = getFloorValue(b.room.room_code);
+
         if (floorA !== floorB) {
-            comparison = floorA - floorB
+          comparison = floorA - floorB;
         } else {
-            // Same floor, sort by name
-            const nameA = a.room.name || ''
-            const nameB = b.room.name || ''
-            comparison = nameA.localeCompare(nameB, "zh-TW")
+          // Same floor, sort by name
+          const nameA = a.room.name || "";
+          const nameB = b.room.name || "";
+          comparison = nameA.localeCompare(nameB, "zh-TW");
         }
-        break
-      case 'time':
-        comparison = new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-        break
-      case 'created_at':
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        break
+        break;
+      case "time":
+        comparison =
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+        break;
+      case "created_at":
+        comparison =
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
     }
 
-    return sortOrder === 'asc' ? comparison : -comparison
-  })
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
 
   const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return <ArrowUpDown className="ml-2 h-4 w-4" />
-    if (sortOrder === 'asc') return <ArrowUp className="ml-2 h-4 w-4" />
-    if (sortOrder === 'desc') return <ArrowDown className="ml-2 h-4 w-4" />
-    return <ArrowUpDown className="ml-2 h-4 w-4" />
-  }
+    if (sortField !== field) return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="ml-2 h-4 w-4" />;
+    if (sortOrder === "desc") return <ArrowDown className="ml-2 h-4 w-4" />;
+    return <ArrowUpDown className="ml-2 h-4 w-4" />;
+  };
 
   return (
     <div className="space-y-4">
@@ -216,29 +263,45 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
           <TableRow>
             <TableHead>申請人</TableHead>
             <TableHead className="text-left w-[120px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('department')}>
-                    單位/系所
-                    {getSortIcon('department')}
-                </Button>
+              <Button
+                variant="ghost"
+                className="p-0 hover:bg-transparent font-medium justify-start"
+                onClick={() => handleSort("department")}
+              >
+                單位/系所
+                {getSortIcon("department")}
+              </Button>
             </TableHead>
             <TableHead className="text-left w-[200px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('room')}>
-                    空間
-                    {getSortIcon('room')}
-                </Button>
+              <Button
+                variant="ghost"
+                className="p-0 hover:bg-transparent font-medium justify-start"
+                onClick={() => handleSort("room")}
+              >
+                空間
+                {getSortIcon("room")}
+              </Button>
             </TableHead>
             <TableHead className="text-left w-[150px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('time')}>
-                    時間
-                    {getSortIcon('time')}
-                </Button>
+              <Button
+                variant="ghost"
+                className="p-0 hover:bg-transparent font-medium justify-start"
+                onClick={() => handleSort("time")}
+              >
+                時間
+                {getSortIcon("time")}
+              </Button>
             </TableHead>
             <TableHead className="w-[200px]">事由</TableHead>
             <TableHead className="text-left w-[140px]">
-                <Button variant="ghost" className="p-0 hover:bg-transparent font-medium justify-start" onClick={() => handleSort('created_at')}>
-                    申請時間
-                    {getSortIcon('created_at')}
-                </Button>
+              <Button
+                variant="ghost"
+                className="p-0 hover:bg-transparent font-medium justify-start"
+                onClick={() => handleSort("created_at")}
+              >
+                申請時間
+                {getSortIcon("created_at")}
+              </Button>
             </TableHead>
             <TableHead className="w-[100px]">狀態</TableHead>
             <TableHead className="text-right w-[140px]">操作</TableHead>
@@ -247,37 +310,78 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
         <TableBody>
           {sortedBookings.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
-                {showHistory ? "目前沒有符合條件的預約" : "目前無有效預約，請開啟歷史紀錄查看過往預約"}
+              <TableCell
+                colSpan={8}
+                className="text-center text-muted-foreground h-24"
+              >
+                {showHistory
+                  ? "目前沒有符合條件的預約"
+                  : "目前無有效預約，請開啟歷史紀錄查看過往預約"}
               </TableCell>
             </TableRow>
           ) : (
             sortedBookings.map((booking) => (
-              <TableRow 
-                key={booking.id} 
+              <TableRow
+                key={booking.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => setSelectedBooking(booking)}
               >
                 <TableCell>
                   <div className="font-medium">{booking.user.full_name}</div>
-                  <div className="text-xs text-muted-foreground">{booking.user.student_id}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {booking.user.student_id}
+                  </div>
                 </TableCell>
-                <TableCell className="text-left">{booking.user.department?.name || '-'}</TableCell>
-                <TableCell className="max-w-[250px] truncate text-left" title={booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name}>
+                <TableCell className="text-left">
+                  {booking.user.department?.name || "-"}
+                </TableCell>
+                <TableCell
+                  className="max-w-[250px] truncate text-left"
+                  title={
+                    booking.room.room_code
+                      ? `(${booking.room.room_code})${booking.room.name}`
+                      : booking.room.name
+                  }
+                >
                   {(() => {
-                    const fullName = booking.room.room_code ? `(${booking.room.room_code})${booking.room.name}` : booking.room.name
-                    return fullName.length > 12 ? `${fullName.slice(0, 12)}...` : fullName
+                    const fullName = booking.room.room_code
+                      ? `(${booking.room.room_code})${booking.room.name}`
+                      : booking.room.name;
+                    return fullName.length > 12
+                      ? `${fullName.slice(0, 12)}...`
+                      : fullName;
                   })()}
                 </TableCell>
                 <TableCell className="text-left">
                   <div className="font-medium">
-                    {format(toTaipeiTime(booking.start_time), "MM/dd", { locale: zhTW })}
+                    {format(toTaipeiTime(booking.start_time), "MM/dd", {
+                      locale: zhTW,
+                    })}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {format(toTaipeiTime(booking.start_time), "HH:mm")} - {format(toTaipeiTime(booking.end_time), "HH:mm")}
+                    {format(toTaipeiTime(booking.start_time), "HH:mm")} -{" "}
+                    {format(toTaipeiTime(booking.end_time), "HH:mm")}
                   </div>
+                  {(() => {
+                    const recurrence = getRecurrenceSummary(
+                      booking.recurrence_frequency ?? null,
+                      booking.recurrence_until ?? null,
+                    );
+
+                    return recurrence ? (
+                      <div className="mt-1 text-xs font-medium text-sky-700 dark:text-sky-300">
+                        {recurrence.label}，至{" "}
+                        {format(toTaipeiTime(recurrence.until), "MM/dd", {
+                          locale: zhTW,
+                        })}
+                      </div>
+                    ) : null;
+                  })()}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={booking.purpose || ''}>
+                <TableCell
+                  className="max-w-[200px] truncate"
+                  title={booking.purpose || ""}
+                >
                   {booking.purpose}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground text-left">
@@ -288,11 +392,13 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
                 </TableCell>
                 <TableCell className="text-right w-[140px] pl-2">
                   <div onClick={(e) => e.stopPropagation()}>
-                    <ActionButtons 
-                        bookingId={booking.id} 
-                        status={booking.status}
-                        hasMultiLevelApproval={booking.has_multi_level_approval}
-                        onSuccess={(action) => handleActionSuccess(booking.id, action)}
+                    <ActionButtons
+                      bookingId={booking.id}
+                      status={booking.status}
+                      hasMultiLevelApproval={booking.has_multi_level_approval}
+                      onSuccess={(action) =>
+                        handleActionSuccess(booking.id, action)
+                      }
                     />
                   </div>
                 </TableCell>
@@ -302,12 +408,12 @@ export function BookingList({ initialBookings, showHistory }: BookingListProps) 
         </TableBody>
       </Table>
 
-      <BookingDetailDialog 
-        booking={selectedBooking} 
-        open={!!selectedBooking} 
+      <BookingDetailDialog
+        booking={selectedBooking}
+        open={!!selectedBooking}
         onOpenChange={(open) => !open && setSelectedBooking(null)}
         onActionSuccess={handleActionSuccess}
       />
     </div>
-  )
+  );
 }

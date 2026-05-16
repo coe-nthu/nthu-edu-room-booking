@@ -1,4 +1,8 @@
 import { createServiceClient } from "@/utils/supabase/service";
+import {
+  sortRecurringSlots,
+  type RecurringBookingSlot,
+} from "@/lib/booking-series";
 import type { Booking } from "./queries";
 
 export type ApprovalStepInfo = {
@@ -26,6 +30,10 @@ export type AdminBooking = Booking & {
   approval_steps?: ApprovalStepInfo[];
   has_multi_level_approval?: boolean;
   current_approval_label?: string | null;
+  recurrence_group_id?: string | null;
+  recurrence_frequency?: "daily" | "weekly" | null;
+  recurrence_until?: string | null;
+  recurring_slots?: RecurringBookingSlot[];
 };
 
 export async function getAdminBookings(filters?: {
@@ -45,6 +53,9 @@ export async function getAdminBookings(filters?: {
       status,
       purpose,
       created_at,
+      recurrence_group_id,
+      recurrence_frequency,
+      recurrence_until,
       room:rooms (
         name,
         room_code
@@ -181,6 +192,31 @@ export async function getAdminBookings(filters?: {
             username: "",
             department: null,
           },
+    };
+  });
+
+  // Collapse recurring bookings into one logical application for admin review.
+  const groupedBookings = new Map<string, AdminBooking[]>();
+  for (const booking of bookings) {
+    const key = booking.recurrence_group_id ?? booking.id;
+    if (!groupedBookings.has(key)) groupedBookings.set(key, []);
+    groupedBookings.get(key)!.push(booking);
+  }
+
+  bookings = Array.from(groupedBookings.values()).map((group) => {
+    const sortedGroup = sortRecurringSlots(group);
+    const representative = sortedGroup[0];
+    return {
+      ...representative,
+      recurring_slots:
+        group.length > 1
+          ? sortedGroup.map((booking) => ({
+              id: booking.id,
+              start_time: booking.start_time,
+              end_time: booking.end_time,
+              status: booking.status,
+            }))
+          : undefined,
     };
   });
 

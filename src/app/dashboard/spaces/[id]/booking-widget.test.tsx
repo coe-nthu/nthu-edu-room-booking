@@ -231,6 +231,8 @@ describe("BookingWidget", () => {
         body: JSON.stringify({
           roomId: "room-1",
           purpose: "運科實驗課",
+          recurrenceFrequency: "weekly",
+          recurrenceUntil: "2026-06-03T16:00:00.000Z",
           slots: [
             {
               startTime: "2026-05-28T01:00:00.000Z",

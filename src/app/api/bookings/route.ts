@@ -25,6 +25,8 @@ const singleBookingSchema = z.object({
 const batchBookingSchema = z.object({
   roomId: z.string().uuid(),
   purpose: z.string().min(1),
+  recurrenceFrequency: z.enum(["daily", "weekly"]).nullable().optional(),
+  recurrenceUntil: z.string().datetime().nullable().optional(),
   slots: z.array(bookingSlotSchema).min(1).max(120),
 });
 
@@ -273,12 +275,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "該時段已被預約" }, { status: 409 });
     }
 
+    const recurrenceGroupId =
+      isBatchRequest && slots.length > 1 ? crypto.randomUUID() : null;
     const rowsToInsert = slots.map((slot) => ({
       user_id: user.id,
       room_id: body.roomId,
       start_time: slot.startTime,
       end_time: slot.endTime,
       purpose: body.purpose,
+      recurrence_group_id: recurrenceGroupId,
+      recurrence_frequency:
+        isBatchRequest && slots.length > 1
+          ? (body.recurrenceFrequency ?? null)
+          : null,
+      recurrence_until:
+        isBatchRequest && slots.length > 1
+          ? (body.recurrenceUntil ?? null)
+          : null,
       status: isAdmin ? "approved" : "pending",
     }));
 
@@ -303,15 +316,13 @@ export async function POST(request: Request) {
           .order("step_order");
 
         if (approvers && approvers.length > 0) {
-          const steps = bookings.flatMap((booking) =>
-            approvers.map((approver) => ({
-              booking_id: booking.id,
-              step_order: approver.step_order,
-              approver_id: approver.user_id,
-              label: approver.label,
-              status: "pending",
-            })),
-          );
+          const steps = approvers.map((approver) => ({
+            booking_id: bookings[0].id,
+            step_order: approver.step_order,
+            approver_id: approver.user_id,
+            label: approver.label,
+            status: "pending",
+          }));
           await supabaseAdmin.from("booking_approval_steps").insert(steps);
         }
       } catch (err) {
