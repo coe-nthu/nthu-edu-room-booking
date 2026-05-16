@@ -118,7 +118,18 @@ describe("POST /api/bookings", () => {
         },
       ],
       semester_settings: [{ data: [], error: null }],
-      bookings: [{ data: [{ id: "existing-booking" }], error: null }],
+      bookings: [
+        {
+          data: [
+            {
+              id: "existing-booking",
+              start_time: "2026-05-20T01:30:00.000Z",
+              end_time: "2026-05-20T02:30:00.000Z",
+            },
+          ],
+          error: null,
+        },
+      ],
     });
     client.auth.getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
     createClientMock.mockResolvedValue(client);
@@ -157,7 +168,7 @@ describe("POST /api/bookings", () => {
       semester_settings: [{ data: [], error: null }],
       bookings: [
         { data: [], error: null },
-        { data: { id: "new-booking", status: "pending" }, error: null },
+        { data: [{ id: "new-booking", status: "pending" }], error: null },
       ],
     });
     const serviceClient = createSupabaseQueryMock({
@@ -187,10 +198,109 @@ describe("POST /api/bookings", () => {
         table: "bookings",
         method: "insert",
         args: [
-          expect.objectContaining({
-            user_id: "user-1",
-            status: "pending",
-          }),
+          [
+            expect.objectContaining({
+              user_id: "user-1",
+              status: "pending",
+            }),
+          ],
+        ],
+      }),
+    );
+  });
+
+  it("creates multiple pending bookings in one request", async () => {
+    const { client, calls } = createSupabaseQueryMock({
+      profiles: [{ data: { role: "user" }, error: null }],
+      rooms: [
+        {
+          data: {
+            unavailable_periods: [],
+            room_type: "Meeting",
+            is_active: true,
+            allow_noon: true,
+            admin_only: false,
+          },
+          error: null,
+        },
+      ],
+      semester_settings: [{ data: [], error: null }],
+      bookings: [
+        { data: [], error: null },
+        {
+          data: [
+            { id: "booking-1", status: "pending" },
+            { id: "booking-2", status: "pending" },
+          ],
+          error: null,
+        },
+      ],
+    });
+    const { client: serviceClient, calls: serviceCalls } =
+      createSupabaseQueryMock({
+        room_approvers: [
+          {
+            data: [{ user_id: "approver-1", step_order: 1, label: "導師" }],
+            error: null,
+          },
+        ],
+        booking_approval_steps: [{ data: null, error: null }],
+      });
+    client.auth.getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    createClientMock.mockResolvedValue(client);
+    createServiceClientMock.mockReturnValue(serviceClient);
+    const { POST } = await import("@/app/api/bookings/route");
+
+    const response = await POST(
+      bookingRequest({
+        roomId: "11111111-1111-4111-8111-111111111111",
+        purpose: "運科實驗",
+        slots: [
+          {
+            startTime: "2026-05-20T01:00:00.000Z",
+            endTime: "2026-05-20T02:00:00.000Z",
+          },
+          {
+            startTime: "2026-05-27T01:00:00.000Z",
+            endTime: "2026-05-27T02:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(responseJson(response)).resolves.toEqual({
+      bookings: [
+        { id: "booking-1", status: "pending" },
+        { id: "booking-2", status: "pending" },
+      ],
+      createdCount: 2,
+    });
+    expect(calls).toContainEqual(
+      expect.objectContaining({
+        table: "bookings",
+        method: "insert",
+        args: [
+          [
+            expect.objectContaining({
+              start_time: "2026-05-20T01:00:00.000Z",
+            }),
+            expect.objectContaining({
+              start_time: "2026-05-27T01:00:00.000Z",
+            }),
+          ],
+        ],
+      }),
+    );
+    expect(serviceCalls).toContainEqual(
+      expect.objectContaining({
+        table: "booking_approval_steps",
+        method: "insert",
+        args: [
+          [
+            expect.objectContaining({ booking_id: "booking-1" }),
+            expect.objectContaining({ booking_id: "booking-2" }),
+          ],
         ],
       }),
     );

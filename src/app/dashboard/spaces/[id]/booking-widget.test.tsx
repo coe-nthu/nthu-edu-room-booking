@@ -101,7 +101,7 @@ describe("BookingWidget", () => {
     expect(screen.getByRole("button", { name: "預約" })).toBeDisabled();
   });
 
-  it("redirects guests to login from the reserve button and preserves the selected slot", async () => {
+  it("lets guests configure the request before login", async () => {
     const user = userEvent.setup();
 
     render(
@@ -116,22 +116,12 @@ describe("BookingWidget", () => {
 
     await user.click(screen.getByRole("button", { name: "預約" }));
 
-    await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith(
-        "請先登入以繼續預約，已保留您選擇的時間",
-      );
-      expect(pushMock).toHaveBeenCalledWith(
-        "/login?next=%2Fdashboard%2Fspaces%2Froom-1",
-      );
-    });
-    expect(screen.queryByText("確認預約資訊")).not.toBeInTheDocument();
+    expect(await screen.findByText("確認預約資訊")).toBeInTheDocument();
+    expect(screen.getByText("送出申請前需要登入")).toBeInTheDocument();
     expect(
-      JSON.parse(localStorage.getItem("pendingBooking_room-1") ?? "{}"),
-    ).toEqual({
-      start: selectedSlot.start.toISOString(),
-      end: selectedSlot.end.toISOString(),
-      purpose: "",
-    });
+      screen.getByRole("button", { name: /登入後送出申請/ }),
+    ).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it("opens confirmation directly for authenticated users", async () => {
@@ -171,6 +161,8 @@ describe("BookingWidget", () => {
         start: selectedSlot.start.toISOString(),
         end: selectedSlot.end.toISOString(),
         purpose: "社團活動討論",
+        recurrenceFrequency: "weekly",
+        repeatUntil: "2026-06-18T16:00:00.000Z",
       }),
     );
 
@@ -189,11 +181,68 @@ describe("BookingWidget", () => {
     expect(
       screen.getByRole("button", { name: "確認送出" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("共 4 筆申請：5/28、6/4、6/11、6/18"),
+    ).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(localStorage.getItem("pendingBooking_room-1")).toBeNull();
     expect(onChangeMock).toHaveBeenCalledWith({
       start: selectedSlot.start,
       end: selectedSlot.end,
     });
+  });
+
+  it("submits multiple generated slots with one shared purpose", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ createdCount: 2 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    useUserMock.mockReturnValue({
+      user: { id: "user-1", email: "user@example.com" },
+      loading: false,
+    });
+
+    render(
+      <BookingWidget
+        room={room()}
+        semesters={semesters}
+        isAdmin={false}
+        selectedSlot={selectedSlot}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "預約" }));
+    await user.click(screen.getByRole("button", { name: "每週重複" }));
+    await user.click(screen.getByRole("button", { name: "選擇結束日期" }));
+    await user.click(
+      screen.getByRole("button", { name: "Thursday, June 4th, 2026" }),
+    );
+    await user.type(screen.getByLabelText("借用事由"), "運科實驗課");
+    await user.click(screen.getByRole("button", { name: "確認送出" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/bookings",
+      expect.objectContaining({
+        body: JSON.stringify({
+          roomId: "room-1",
+          purpose: "運科實驗課",
+          slots: [
+            {
+              startTime: "2026-05-28T01:00:00.000Z",
+              endTime: "2026-05-28T02:00:00.000Z",
+            },
+            {
+              startTime: "2026-06-04T01:00:00.000Z",
+              endTime: "2026-06-04T02:00:00.000Z",
+            },
+          ],
+        }),
+      }),
+    );
+    expect(toastSuccessMock).toHaveBeenCalledWith("已送出 2 筆預約申請");
   });
 });

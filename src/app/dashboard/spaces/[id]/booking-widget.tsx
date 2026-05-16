@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { CheckCircle2, Info, Loader2, LogIn } from "lucide-react";
+import { CheckCircle2, Info, Loader2, LogIn, Repeat2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+  buildRecurringSlots,
+  getRecurrenceLabel,
+  type RecurrenceFrequency,
+} from "@/lib/booking-recurrence";
 
 import { isDateWithin4Months, isDateInLockedPeriod } from "@/utils/semester";
 import { useUser } from "@/hooks/use-user";
@@ -60,6 +65,9 @@ export function BookingWidget({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasRestoredPendingBooking, setHasRestoredPendingBooking] =
     useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] =
+    useState<RecurrenceFrequency>("none");
+  const [repeatUntil, setRepeatUntil] = useState<Date>();
 
   // Restore booking data from localStorage if available and user is logged in
   useEffect(() => {
@@ -72,14 +80,28 @@ export function BookingWidget({
           start,
           end,
           purpose: storedPurpose,
+          recurrenceFrequency: storedRecurrenceFrequency,
+          repeatUntil: storedRepeatUntil,
         } = JSON.parse(storedBooking);
         const startDate = new Date(start);
         const endDate = new Date(end);
+        const restoredRepeatUntil = storedRepeatUntil
+          ? new Date(storedRepeatUntil)
+          : undefined;
 
         // Only restore if dates are valid
         if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
           onChange({ start: startDate, end: endDate });
           if (storedPurpose) setPurpose(storedPurpose);
+          if (
+            storedRecurrenceFrequency === "daily" ||
+            storedRecurrenceFrequency === "weekly"
+          ) {
+            setRecurrenceFrequency(storedRecurrenceFrequency);
+          }
+          if (restoredRepeatUntil && !isNaN(restoredRepeatUntil.getTime())) {
+            setRepeatUntil(restoredRepeatUntil);
+          }
 
           // If user is logged in, open the dialog automatically to continue
           // If not logged in, just filling the form is enough (they will hit reserve again)
@@ -112,6 +134,68 @@ export function BookingWidget({
     return validation.isValid ? null : validation.message;
   };
 
+  const recurringSlots = selectedSlot
+    ? buildRecurringSlots(selectedSlot, recurrenceFrequency, repeatUntil)
+    : [];
+  const selectedStartDay = selectedSlot
+    ? new Date(
+        selectedSlot.start.getFullYear(),
+        selectedSlot.start.getMonth(),
+        selectedSlot.start.getDate(),
+      )
+    : null;
+
+  const getRecurringValidationMessage = () => {
+    if (!selectedSlot) return "請先選擇預約時間";
+
+    if (recurrenceFrequency !== "none" && !repeatUntil) {
+      return "請選擇重複申請的結束日期";
+    }
+
+    if (
+      recurrenceFrequency !== "none" &&
+      repeatUntil &&
+      selectedStartDay &&
+      repeatUntil < selectedStartDay
+    ) {
+      return "結束日期不可早於第一個借用日期";
+    }
+
+    for (const slot of recurringSlots) {
+      const validation = validateBookingRules(
+        slot.start,
+        slot.end,
+        room.id,
+        [room],
+        semesters,
+        isAdmin,
+      );
+
+      if (!validation.isValid) {
+        return validation.message ?? "部分重複時段目前不可借用";
+      }
+    }
+
+    return null;
+  };
+
+  const savePendingBookingDraft = () => {
+    if (!selectedSlot) return;
+
+    const bookingData = {
+      start: selectedSlot.start.toISOString(),
+      end: selectedSlot.end.toISOString(),
+      purpose: purpose.trim(),
+      recurrenceFrequency,
+      repeatUntil: repeatUntil?.toISOString() ?? null,
+    };
+
+    localStorage.setItem(
+      `pendingBooking_${room.id}`,
+      JSON.stringify(bookingData),
+    );
+  };
+
   const handleReserveClick = () => {
     const validationMessage = getBookingValidationMessage();
 
@@ -125,29 +209,13 @@ export function BookingWidget({
       return;
     }
 
-    if (!user && selectedSlot) {
-      const bookingData = {
-        start: selectedSlot.start.toISOString(),
-        end: selectedSlot.end.toISOString(),
-        purpose: purpose.trim(),
-      };
-      localStorage.setItem(
-        `pendingBooking_${room.id}`,
-        JSON.stringify(bookingData),
-      );
-
-      toast.error("請先登入以繼續預約，已保留您選擇的時間");
-      const returnUrl = window.location.pathname;
-      router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
-      return;
-    }
-
     setHasRestoredPendingBooking(false);
     setIsDialogOpen(true);
   };
 
   const handleSubmit = async () => {
-    const validationMessage = getBookingValidationMessage();
+    const validationMessage =
+      getBookingValidationMessage() ?? getRecurringValidationMessage();
 
     if (validationMessage) {
       toast.error(validationMessage);
@@ -162,15 +230,7 @@ export function BookingWidget({
     if (!selectedSlot) return;
 
     if (!user) {
-      const bookingData = {
-        start: selectedSlot.start.toISOString(),
-        end: selectedSlot.end.toISOString(),
-        purpose: purpose.trim(),
-      };
-      localStorage.setItem(
-        `pendingBooking_${room.id}`,
-        JSON.stringify(bookingData),
-      );
+      savePendingBookingDraft();
 
       toast.error("請先登入以送出申請，已保留您填寫的預約資料");
       const returnUrl = window.location.pathname;
@@ -187,9 +247,11 @@ export function BookingWidget({
         },
         body: JSON.stringify({
           roomId: room.id,
-          startTime: selectedSlot.start.toISOString(),
-          endTime: selectedSlot.end.toISOString(),
           purpose: purpose.trim(),
+          slots: recurringSlots.map((slot) => ({
+            startTime: slot.start.toISOString(),
+            endTime: slot.end.toISOString(),
+          })),
         }),
       });
 
@@ -198,10 +260,16 @@ export function BookingWidget({
         throw new Error(errorData.error || "預約失敗");
       }
 
-      toast.success("預約申請已送出");
+      toast.success(
+        recurringSlots.length > 1
+          ? `已送出 ${recurringSlots.length} 筆預約申請`
+          : "預約申請已送出",
+      );
       setIsDialogOpen(false);
       setHasRestoredPendingBooking(false);
       setPurpose("");
+      setRecurrenceFrequency("none");
+      setRepeatUntil(undefined);
       onChange(null);
       // Clear any stored booking data just in case
       localStorage.removeItem(`pendingBooking_${room.id}`);
@@ -282,6 +350,8 @@ export function BookingWidget({
   const isMeetingRoom = room.room_type === "Meeting";
   const isGuest = !loading && !user;
   const submitButtonLabel = isGuest ? "登入後送出申請" : "確認送出";
+  const recurringValidationMessage = getRecurringValidationMessage();
+  const previewSlots = recurringSlots.slice(0, 4);
 
   return (
     <>
@@ -403,7 +473,7 @@ export function BookingWidget({
           </Button>
           <p className="text-xs leading-relaxed text-muted-foreground">
             {isGuest
-              ? "未登入也可以先選擇時間；按下預約後會先帶你登入，回來再填寫事由並確認送出。"
+              ? "未登入也可以先設定時段、重複方式與事由；送出時會先帶你登入，回來再確認一次。"
               : "送出前系統會重新檢查時段是否仍可借用。"}
           </p>
         </div>
@@ -426,6 +496,98 @@ export function BookingWidget({
               <div className="mt-1 text-muted-foreground">
                 {selectedSlot && format(selectedSlot.start, "yyyy/MM/dd HH:mm")}{" "}
                 - {selectedSlot && format(selectedSlot.end, "HH:mm")}
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Repeat2 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">重複申請</div>
+                  <div className="text-xs text-muted-foreground">
+                    借用事由會共用；系統會把每個日期各自建立成一筆申請。
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {(["none", "weekly", "daily"] as const).map((frequency) => (
+                  <Button
+                    key={frequency}
+                    type="button"
+                    variant={
+                      recurrenceFrequency === frequency ? "default" : "outline"
+                    }
+                    className="h-auto py-2 text-sm"
+                    onClick={() => {
+                      setRecurrenceFrequency(frequency);
+                      if (frequency === "none") setRepeatUntil(undefined);
+                    }}
+                  >
+                    {getRecurrenceLabel(frequency)}
+                  </Button>
+                ))}
+              </div>
+
+              {recurrenceFrequency !== "none" && (
+                <div className="grid gap-2">
+                  <Label>重複到</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "justify-start font-normal",
+                          !repeatUntil && "text-muted-foreground",
+                        )}
+                      >
+                        {repeatUntil
+                          ? format(repeatUntil, "yyyy 年 M 月 d 日")
+                          : "選擇結束日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={repeatUntil}
+                        onSelect={setRepeatUntil}
+                        initialFocus
+                        disabled={(date) =>
+                          selectedStartDay ? date < selectedStartDay : true
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              <div
+                className={cn(
+                  "rounded-md px-3 py-2 text-sm",
+                  recurringValidationMessage
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                {recurringValidationMessage ? (
+                  recurringValidationMessage
+                ) : recurrenceFrequency === "none" ? (
+                  "這次只會建立 1 筆申請。"
+                ) : (
+                  <>
+                    共 {recurringSlots.length} 筆申請
+                    {previewSlots.length > 0 && (
+                      <>
+                        ：
+                        {previewSlots
+                          .map((slot) => format(slot.start, "M/d"))
+                          .join("、")}
+                        {recurringSlots.length > previewSlots.length ? "…" : ""}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
@@ -489,7 +651,7 @@ export function BookingWidget({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  提交中...
+                  {recurringSlots.length > 1 ? "批次送出中..." : "提交中..."}
                 </>
               ) : isGuest ? (
                 <>
