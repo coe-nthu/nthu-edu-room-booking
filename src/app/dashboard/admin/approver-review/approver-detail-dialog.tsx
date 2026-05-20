@@ -23,7 +23,11 @@ interface ApproverDetailDialogProps {
   item: ApproverBookingItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onActionSuccess: (bookingId: string, action: "approve" | "reject") => void;
+  onActionSuccess: (
+    bookingId: string,
+    action: "approve" | "reject",
+    comment?: string,
+  ) => void;
 }
 
 export function ApproverDetailDialog({
@@ -92,8 +96,8 @@ export function ApproverDetailDialog({
               bookingId={booking.id}
               stepId={step.id}
               status={step.status}
-              onSuccess={(action) => {
-                onActionSuccess(booking.id, action);
+              onSuccess={(action, comment) => {
+                onActionSuccess(booking.id, action, comment);
                 onOpenChange(false);
               }}
             />

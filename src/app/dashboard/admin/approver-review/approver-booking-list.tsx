@@ -67,6 +67,7 @@ export function ApproverBookingList({
   const handleActionSuccess = (
     bookingId: string,
     action: "approve" | "reject",
+    comment?: string,
   ) => {
     setData((prev) =>
       prev.map((item) => {
@@ -77,6 +78,7 @@ export function ApproverBookingList({
               ...item.step,
               status: action === "approve" ? "approved" : "rejected",
               decided_at: new Date().toISOString(),
+              comment: comment ?? null,
             },
             booking: {
               ...item.booking,
@@ -224,8 +226,8 @@ export function ApproverBookingList({
                       bookingId={item.booking.id}
                       stepId={item.step.id}
                       status={item.step.status}
-                      onSuccess={(action) =>
-                        handleActionSuccess(item.booking.id, action)
+                      onSuccess={(action, comment) =>
+                        handleActionSuccess(item.booking.id, action, comment)
                       }
                     />
                   </div>

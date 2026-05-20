@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   AlertDialog,
@@ -10,20 +10,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { useState } from "react"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
-import { approveStep, rejectStep } from "@/app/actions/admin-approvers"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { approveStep, rejectStep } from "@/app/actions/admin-approvers";
 
 interface ApproverActionButtonsProps {
-  bookingId: string
-  stepId: string
-  status: string
-  onSuccess?: (action: 'approve' | 'reject') => void
+  bookingId: string;
+  stepId: string;
+  status: string;
+  onSuccess?: (action: "approve" | "reject", comment?: string) => void;
 }
 
 export function ApproverActionButtons({
@@ -32,55 +32,110 @@ export function ApproverActionButtons({
   status,
   onSuccess,
 }: ApproverActionButtonsProps) {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [rejectionReason, setRejectionReason] = useState("")
-  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [approvalComment, setApprovalComment] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 
-  if (status !== 'pending') return null
+  if (status !== "pending") return null;
 
   const handleApprove = async () => {
-    setIsLoading(true)
-    try {
-      await approveStep(bookingId, stepId)
-      toast.success("已核准此階段")
-      router.refresh()
-      onSuccess?.('approve')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "核准失敗")
-    } finally {
-      setIsLoading(false)
+    const trimmedComment = approvalComment.trim();
+
+    if (!trimmedComment) {
+      toast.error("請填寫備注意見；若無意見請填「無」");
+      return;
     }
-  }
+
+    setIsLoading(true);
+    try {
+      await approveStep(bookingId, stepId, trimmedComment);
+      toast.success("已核准此階段");
+      setIsApproveDialogOpen(false);
+      setApprovalComment("");
+      router.refresh();
+      onSuccess?.("approve", trimmedComment);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "核准失敗");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleReject = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await rejectStep(bookingId, stepId, rejectionReason)
-      toast.success("已拒絕預約")
-      setIsRejectDialogOpen(false)
-      router.refresh()
-      onSuccess?.('reject')
+      await rejectStep(bookingId, stepId, rejectionReason);
+      toast.success("已拒絕預約");
+      setIsRejectDialogOpen(false);
+      router.refresh();
+      onSuccess?.("reject", rejectionReason.trim() || undefined);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "拒絕失敗")
+      toast.error(error instanceof Error ? error.message : "拒絕失敗");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex items-center justify-end gap-1.5">
-      <Button
-        size="sm"
-        variant="default"
-        className="bg-green-600 hover:bg-green-700"
-        onClick={handleApprove}
-        disabled={isLoading}
+      <AlertDialog
+        open={isApproveDialogOpen}
+        onOpenChange={(open) => {
+          setIsApproveDialogOpen(open);
+          if (!open) setApprovalComment("");
+        }}
       >
-        核准
-      </Button>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="sm"
+            variant="default"
+            className="bg-green-600 hover:bg-green-700"
+            disabled={isLoading}
+          >
+            同意
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>備注意見</AlertDialogTitle>
+            <AlertDialogDescription>
+              請填寫此階段的審查備註。若同意且沒有其他意見，請填寫「無」。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-      <AlertDialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+          <div className="grid gap-2 py-4">
+            <Label htmlFor="approval-comment">備注意見</Label>
+            <Textarea
+              id="approval-comment"
+              placeholder="若無意見請填「無」"
+              value={approvalComment}
+              onChange={(e) => setApprovalComment(e.target.value)}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isLoading}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleApprove();
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              確認同意
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isRejectDialogOpen}
+        onOpenChange={setIsRejectDialogOpen}
+      >
         <AlertDialogTrigger asChild>
           <Button size="sm" variant="destructive" disabled={isLoading}>
             拒絕
@@ -116,5 +171,5 @@ export function ApproverActionButtons({
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

@@ -242,8 +242,17 @@ export async function getApprovalSteps(
 }
 
 // Approver approves their step
-export async function approveStep(bookingId: string, stepId: string) {
+export async function approveStep(
+  bookingId: string,
+  stepId: string,
+  comment: string,
+) {
   const { supabase, user } = await requireAuth();
+  const approvalComment = comment.trim();
+
+  if (!approvalComment) {
+    throw new Error("請填寫備注意見；若無意見請填「無」");
+  }
 
   // Verify this step belongs to the current user
   const { data: step, error: stepError } = await supabase
@@ -276,6 +285,7 @@ export async function approveStep(bookingId: string, stepId: string) {
     .update({
       status: "approved",
       decided_at: new Date().toISOString(),
+      comment: approvalComment,
     })
     .eq("id", stepId);
 
