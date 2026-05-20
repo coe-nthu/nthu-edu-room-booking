@@ -8,29 +8,27 @@ export default async function SpacesPage() {
   const cookieStore = await cookies()
   const shouldCheckUser = hasSupabaseAuthCookie(cookieStore)
 
-  const [roomsData, userResult] = await Promise.all([
-    getRoomCards(),
-    shouldCheckUser
-      ? createClient().then((supabase) => supabase.auth.getUser())
-      : Promise.resolve(null),
-  ])
-  
-  let rooms = roomsData
   let isAdmin = false
-  const user = userResult?.data.user
 
-  if (user) {
+  if (shouldCheckUser) {
     const supabase = await createClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    if (profile?.role === 'admin') {
-      isAdmin = true
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (profile?.role === 'admin') {
+        isAdmin = true
+      }
     }
   }
-  
+
+  const roomsData = await getRoomCards(isAdmin)
+  let rooms = roomsData
+
   // Filter out admin_only rooms if user is not admin
   if (!isAdmin) {
     rooms = rooms.filter(room => !room.admin_only)
