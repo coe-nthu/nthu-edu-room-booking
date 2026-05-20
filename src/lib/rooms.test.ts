@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { compareFloors, compareRoomsByFloor } from "@/lib/rooms";
+import { canAccessRoom, compareFloors, compareRoomsByFloor } from "@/lib/rooms";
 import type { Room } from "@/utils/supabase/queries";
 
 function room(overrides: Partial<Room>): Room {
@@ -67,5 +67,28 @@ describe("compareRoomsByFloor", () => {
       "a",
       "b",
     ]);
+  });
+});
+
+describe("canAccessRoom", () => {
+  it("allows admins to access active rooms and inactive admin-only rooms", () => {
+    expect(
+      canAccessRoom(room({ is_active: true, admin_only: false }), true),
+    ).toBe(true);
+    expect(
+      canAccessRoom(room({ is_active: false, admin_only: true }), true),
+    ).toBe(true);
+  });
+
+  it("hides inactive non-admin-only rooms from admins and all admin-only rooms from regular users", () => {
+    expect(
+      canAccessRoom(room({ is_active: false, admin_only: false }), true),
+    ).toBe(false);
+    expect(
+      canAccessRoom(room({ is_active: true, admin_only: true }), false),
+    ).toBe(false);
+    expect(
+      canAccessRoom(room({ is_active: false, admin_only: true }), false),
+    ).toBe(false);
   });
 });

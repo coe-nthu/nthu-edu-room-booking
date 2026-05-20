@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { Room } from "@/utils/supabase/queries"
-import { compareFloors, compareRoomsByFloor } from "@/lib/rooms"
+import { useState, useEffect, useMemo } from "react";
+import { Room } from "@/utils/supabase/queries";
+import { compareFloors, compareRoomsByFloor } from "@/lib/rooms";
+import { DEFAULT_ROOM_IMAGE_SRC, getRoomImageSrc } from "@/lib/room-images";
 import {
   Table,
   TableBody,
@@ -10,10 +11,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,35 +24,41 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { toggleRoomStatus } from "@/app/actions/admin-rooms"
-import { RoomFormDialog } from "./room-form-dialog"
-import { toast } from "sonner"
-import Image from "next/image"
-import { PlusCircle, Pencil, Search } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/alert-dialog";
+import { toggleRoomStatus } from "@/app/actions/admin-rooms";
+import { RoomFormDialog } from "./room-form-dialog";
+import { toast } from "sonner";
+import Image from "next/image";
+import { PlusCircle, Pencil, Search } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
 type AdminRoomsClientProps = {
-  initialRooms: Room[]
-}
+  initialRooms: Room[];
+};
 
 export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
-  const [rooms, setRooms] = useState(initialRooms)
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
-  const [targetRoom, setTargetRoom] = useState<{ id: string, name: string, isActive: boolean } | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterFloor, setFilterFloor] = useState<string>("all")
-  const [filterRoomType, setFilterRoomType] = useState<string>("all")
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
+  const [rooms, setRooms] = useState(initialRooms);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [targetRoom, setTargetRoom] = useState<{
+    id: string;
+    name: string;
+    isActive: boolean;
+  } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterFloor, setFilterFloor] = useState<string>("all");
+  const [filterRoomType, setFilterRoomType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "active" | "inactive"
+  >("all");
 
   const floorOptions = useMemo(
     () =>
@@ -63,7 +70,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
         ),
       ).sort(compareFloors),
     [initialRooms],
-  )
+  );
 
   const roomTypeOptions = useMemo(
     () =>
@@ -75,75 +82,79 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
         ),
       ).sort(),
     [initialRooms],
-  )
+  );
 
   const filteredRooms = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase()
+    const keyword = searchTerm.trim().toLowerCase();
 
-    return rooms.filter((room) => {
-      // 搜尋：名稱與代號
-      if (keyword) {
-        const name = room.name?.toLowerCase() ?? ""
-        const code = room.room_code?.toLowerCase() ?? ""
-        if (!name.includes(keyword) && !code.includes(keyword)) {
-          return false
+    return rooms
+      .filter((room) => {
+        // 搜尋：名稱與代號
+        if (keyword) {
+          const name = room.name?.toLowerCase() ?? "";
+          const code = room.room_code?.toLowerCase() ?? "";
+          if (!name.includes(keyword) && !code.includes(keyword)) {
+            return false;
+          }
         }
-      }
 
-      // 篩選：樓層
-      if (filterFloor !== "all") {
-        if ((room.floor ?? "") !== filterFloor) {
-          return false
+        // 篩選：樓層
+        if (filterFloor !== "all") {
+          if ((room.floor ?? "") !== filterFloor) {
+            return false;
+          }
         }
-      }
 
-      // 篩選：類型
-      if (filterRoomType !== "all") {
-        if ((room.room_type ?? "") !== filterRoomType) {
-          return false
+        // 篩選：類型
+        if (filterRoomType !== "all") {
+          if ((room.room_type ?? "") !== filterRoomType) {
+            return false;
+          }
         }
-      }
 
-      // 篩選：狀態
-      if (filterStatus === "active") {
-        if (room.is_active === false) return false
-      } else if (filterStatus === "inactive") {
-        if (room.is_active !== false) return false
-      }
+        // 篩選：狀態
+        if (filterStatus === "active") {
+          if (room.is_active === false) return false;
+        } else if (filterStatus === "inactive") {
+          if (room.is_active !== false) return false;
+        }
 
-      return true
-    }).sort(compareRoomsByFloor)
-  }, [rooms, searchTerm, filterFloor, filterRoomType, filterStatus])
+        return true;
+      })
+      .sort(compareRoomsByFloor);
+  }, [rooms, searchTerm, filterFloor, filterRoomType, filterStatus]);
 
   // 確保客戶端 hydration 完成後才渲染 Radix UI 組件，避免 ID 不匹配
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   const handleToggleStatus = (room: Room) => {
     if (room.is_active) {
       // If currently active, we are about to disable it -> show confirmation
-      setTargetRoom({ id: room.id, name: room.name, isActive: false })
-      setIsConfirmOpen(true)
+      setTargetRoom({ id: room.id, name: room.name, isActive: false });
+      setIsConfirmOpen(true);
     } else {
       // If currently inactive, we enable it directly (or could also confirm, but usually enabling is safe)
-      executeToggle(room.id, true)
+      executeToggle(room.id, true);
     }
-  }
+  };
 
   const executeToggle = async (id: string, newStatus: boolean) => {
     try {
-      await toggleRoomStatus(id, newStatus)
-      setRooms(rooms.map(r => r.id === id ? { ...r, is_active: newStatus } : r))
-      toast.success(newStatus ? "空間已啟用" : "空間已停用")
+      await toggleRoomStatus(id, newStatus);
+      setRooms(
+        rooms.map((r) => (r.id === id ? { ...r, is_active: newStatus } : r)),
+      );
+      toast.success(newStatus ? "空間已啟用" : "空間已停用");
     } catch (error) {
-      toast.error("操作失敗，請稍後再試")
-      console.error(error)
+      toast.error("操作失敗，請稍後再試");
+      console.error(error);
     } finally {
-      setIsConfirmOpen(false)
-      setTargetRoom(null)
+      setIsConfirmOpen(false);
+      setTargetRoom(null);
     }
-  }
+  };
 
   // 在 mounted 之前顯示 loading 狀態
   if (!mounted) {
@@ -169,21 +180,37 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
             <TableBody>
               {[1, 2, 3].map((i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="w-16 h-10" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="w-16 h-10" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-8" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-8" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-16" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-8 w-20 ml-auto" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -289,9 +316,9 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
             {filteredRooms.map((room) => (
               <TableRow key={room.id}>
                 <TableCell>
-                   <div className="relative w-16 h-10 bg-muted rounded overflow-hidden">
-                      <AdminRoomImage src={room.image_url} alt={room.name} />
-                   </div>
+                  <div className="relative w-16 h-10 bg-muted rounded overflow-hidden">
+                    <AdminRoomImage src={room.image_url} alt={room.name} />
+                  </div>
                 </TableCell>
                 <TableCell className="font-medium">{room.name}</TableCell>
                 <TableCell>{room.room_code}</TableCell>
@@ -299,20 +326,36 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                 <TableCell>{room.floor}</TableCell>
                 <TableCell>{room.capacity}</TableCell>
                 <TableCell>
-                   {room.is_active ? (
-                       <Badge variant="default" className="bg-green-600 hover:bg-green-700">啟用中</Badge>
-                   ) : (
-                       <Badge variant="destructive">已停用</Badge>
-                   )}
+                  {room.admin_only ? (
+                    <Badge
+                      variant="default"
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      僅管理員
+                    </Badge>
+                  ) : room.is_active ? (
+                    <Badge
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      啟用中
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive">已停用</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Switch 
+                  <Switch
                     checked={room.is_active !== false} // Handle null as true (legacy)
                     onCheckedChange={() => handleToggleStatus(room)}
                   />
-                  <RoomFormDialog mode="edit" room={room} roomTypeOptions={roomTypeOptions}>
+                  <RoomFormDialog
+                    mode="edit"
+                    room={room}
+                    roomTypeOptions={roomTypeOptions}
+                  >
                     <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   </RoomFormDialog>
                 </TableCell>
@@ -334,31 +377,35 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction 
-                onClick={() => targetRoom && executeToggle(targetRoom.id, false)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <AlertDialogAction
+              onClick={() => targetRoom && executeToggle(targetRoom.id, false)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-                確認停用
+              確認停用
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }
 
-function AdminRoomImage({ src, alt }: { src: string | null, alt: string }) {
-    const [error, setError] = useState(false)
-    const finalSrc = (src && !error) ? src : "/login_cover.jpg"
+function AdminRoomImage({ src, alt }: { src: string | null; alt: string }) {
+  const [error, setError] = useState(false);
+  const finalSrc = error
+    ? DEFAULT_ROOM_IMAGE_SRC
+    : getRoomImageSrc(src, { width: 160, height: 100, quality: 60 });
 
-    return (
-        <Image 
-            src={finalSrc} 
-            alt={alt}
-            fill
-            sizes="100px" // Only used as a tiny thumbnail in a table
-            className="object-cover"
-            onError={() => setError(true)}
-        />
-    )
+  return (
+    <Image
+      src={finalSrc}
+      alt={alt}
+      fill
+      sizes="100px" // Only used as a tiny thumbnail in a table
+      unoptimized
+      className="object-cover"
+      loading="lazy"
+      onError={() => setError(true)}
+    />
+  );
 }

@@ -9,6 +9,7 @@ import {
   isDateInSemester,
   type SemesterSetting,
 } from "@/utils/semester";
+import { canAccessRoom } from "@/lib/rooms";
 
 const bookingSlotSchema = z.object({
   startTime: z.string().datetime(),
@@ -199,15 +200,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "空間不存在" }, { status: 404 });
     }
 
-    if (room.is_active === false && !isAdmin) {
-      return NextResponse.json({ error: "此空間已停用" }, { status: 400 });
-    }
+    if (!canAccessRoom(room, isAdmin)) {
+      if (room.admin_only && !isAdmin) {
+        return NextResponse.json(
+          { error: "此空間僅限管理員借用" },
+          { status: 403 },
+        );
+      }
 
-    if (room.admin_only && !isAdmin) {
-      return NextResponse.json(
-        { error: "此空間僅限管理員借用" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "此空間已停用" }, { status: 400 });
     }
 
     // Fetch semester settings for date restrictions

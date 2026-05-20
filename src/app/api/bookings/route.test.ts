@@ -102,6 +102,43 @@ describe("POST /api/bookings", () => {
     });
   });
 
+  it("rejects admin bookings for inactive rooms unless the room is admin-only", async () => {
+    const { client } = createSupabaseQueryMock({
+      profiles: [{ data: { role: "admin" }, error: null }],
+      rooms: [
+        {
+          data: {
+            unavailable_periods: [],
+            room_type: "Meeting",
+            is_active: false,
+            allow_noon: true,
+            admin_only: false,
+          },
+          error: null,
+        },
+      ],
+    });
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { id: "admin-1" } },
+    });
+    createClientMock.mockResolvedValue(client);
+    const { POST } = await import("@/app/api/bookings/route");
+
+    const response = await POST(
+      bookingRequest({
+        roomId: "11111111-1111-4111-8111-111111111111",
+        startTime: "2026-05-20T01:00:00.000Z",
+        endTime: "2026-05-20T02:00:00.000Z",
+        purpose: "Admin booking",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(responseJson(response)).resolves.toEqual({
+      error: "此空間已停用",
+    });
+  });
+
   it("rejects overlapping bookings", async () => {
     const { client } = createSupabaseQueryMock({
       profiles: [{ data: { role: "user" }, error: null }],

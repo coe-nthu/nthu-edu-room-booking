@@ -84,6 +84,8 @@ describe("SpacesPage", () => {
     getRoomCardsMock.mockResolvedValue([
       room({ id: "open-room" }),
       room({ id: "admin-room", admin_only: true }),
+      room({ id: "inactive-admin-room", is_active: false, admin_only: true }),
+      room({ id: "disabled-room", is_active: false, admin_only: false }),
     ]);
 
     const { default: SpacesPage } = await import("./page");
@@ -91,7 +93,10 @@ describe("SpacesPage", () => {
 
     expect(getRoomCardsMock).toHaveBeenCalledWith(true);
     expect(screen.getByTestId("room-list")).toHaveTextContent(
-      "open-room,admin-room",
+      "open-room,admin-room,inactive-admin-room",
+    );
+    expect(screen.getByTestId("room-list")).not.toHaveTextContent(
+      "disabled-room",
     );
   });
 
@@ -107,8 +112,6 @@ describe("SpacesPage", () => {
 
     expect(getRoomCardsMock).toHaveBeenCalledWith(false);
     expect(screen.getByTestId("room-list")).toHaveTextContent("open-room");
-    expect(screen.getByTestId("room-list")).not.toHaveTextContent(
-      "admin-room",
-    );
+    expect(screen.getByTestId("room-list")).not.toHaveTextContent("admin-room");
   });
 });
