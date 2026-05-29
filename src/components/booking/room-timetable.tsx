@@ -169,9 +169,15 @@ export function RoomTimetable({
           right: "dayGridMonth,timeGridWeek,timeGridDay",
         }}
         views={{
+          dayGridMonth: {
+            dayHeaderFormat: {
+              weekday: "narrow",
+            },
+          },
           timeGridWeek: {
             type: "timeGrid",
             duration: { days: 7 },
+            dateAlignment: "week",
             buttonText: "週",
           },
         }}
@@ -210,7 +216,7 @@ export function RoomTimetable({
         contentHeight="auto"
         dayMaxEvents={true}
         weekends={true}
-        firstDay={new Date().getDay()} // Set first day to today dynamically
+        firstDay={0}
         expandRows={true}
         stickyHeaderDates={true}
         eventDisplay="block"
