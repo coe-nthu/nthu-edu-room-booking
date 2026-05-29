@@ -2,13 +2,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSupabaseQueryMock } from "@/test/supabase-query-mock";
 
-const { createClientMock, revalidatePathMock } = vi.hoisted(() => ({
-  createClientMock: vi.fn(),
-  revalidatePathMock: vi.fn(),
-}));
+const { createClientMock, createServiceClientMock, revalidatePathMock } =
+  vi.hoisted(() => ({
+    createClientMock: vi.fn(),
+    createServiceClientMock: vi.fn(),
+    revalidatePathMock: vi.fn(),
+  }));
 
 vi.mock("@/utils/supabase/server", () => ({
   createClient: createClientMock,
+}));
+
+vi.mock("@/utils/supabase/service", () => ({
+  createServiceClient: createServiceClientMock,
 }));
 
 vi.mock("next/cache", () => ({
@@ -18,6 +24,7 @@ vi.mock("next/cache", () => ({
 describe("admin room actions", () => {
   beforeEach(() => {
     createClientMock.mockReset();
+    createServiceClientMock.mockReset();
     revalidatePathMock.mockReset();
   });
 
@@ -124,27 +131,29 @@ describe("admin room actions", () => {
   });
 
   it("deletes room images from storage and updates the room gallery", async () => {
-    const { client, calls, storageCalls } = createSupabaseQueryMock({
+    const { client } = createSupabaseQueryMock({
       profiles: [{ data: { role: "admin" }, error: null }],
-      rooms: [
-        {
-          data: {
-            image_url: "room-images/old.jpg",
-            image_urls: ["room-images/old.jpg", "room-images/next.jpg"],
-          },
-          error: null,
-        },
-        { data: null, error: null },
-      ],
+    });
+    const {
+      client: serviceClient,
+      calls: serviceCalls,
+      storageCalls,
+    } = createSupabaseQueryMock({
+      rooms: [{ data: null, error: null }],
     });
     client.auth.getUser.mockResolvedValue({
       data: { user: { id: "admin-1" } },
     });
     createClientMock.mockResolvedValue(client);
+    createServiceClientMock.mockReturnValue(serviceClient);
     const { deleteRoomImage } = await import("@/app/actions/admin-rooms");
 
     await expect(
-      deleteRoomImage("room-images/old.jpg", "room-1"),
+      deleteRoomImage("room-images/old.jpg", {
+        roomId: "room-1",
+        imageUrls: ["room-images/next.jpg"],
+        primaryImageUrl: "room-images/next.jpg",
+      }),
     ).resolves.toEqual({
       image_url: "room-images/next.jpg",
       image_urls: ["room-images/next.jpg"],
@@ -155,7 +164,7 @@ describe("admin room actions", () => {
       method: "remove",
       args: [["old.jpg"]],
     });
-    expect(calls).toContainEqual(
+    expect(serviceCalls).toContainEqual(
       expect.objectContaining({
         table: "rooms",
         method: "update",

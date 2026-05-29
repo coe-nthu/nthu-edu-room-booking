@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { revalidatePath } from "next/cache";
 import { Room } from "@/utils/supabase/queries";
 import {
@@ -97,46 +98,49 @@ export async function toggleRoomStatus(id: string, isActive: boolean) {
   revalidatePath("/dashboard/spaces");
 }
 
-export async function deleteRoomImage(imageUrl: string, roomId?: string) {
-  const supabase = await requireAdmin();
+export async function deleteRoomImage(
+  imageUrl: string,
+  options?: {
+    roomId?: string;
+    imageUrls?: string[];
+    primaryImageUrl?: string | null;
+  },
+) {
+  await requireAdmin();
+  const serviceSupabase = createServiceClient();
   const trimmedImageUrl = imageUrl.trim();
   if (!trimmedImageUrl) throw new Error("No image URL provided");
 
   let nextImageUrls: string[] | null = null;
   let nextPrimaryImageUrl: string | null = null;
+  const roomId = options?.roomId;
 
   if (roomId) {
-    const { data: room, error: fetchError } = await supabase
-      .from("rooms")
-      .select("image_url, image_urls")
-      .eq("id", roomId)
-      .single();
-
-    if (fetchError) throw new Error(fetchError.message);
-
-    const currentImages = normalizeRoomImageList(
-      room?.image_urls,
-      room?.image_url,
+    nextImageUrls = normalizeRoomImageList(
+      options?.imageUrls,
+      options?.primaryImageUrl,
+    ).filter((url) => url !== trimmedImageUrl);
+    nextPrimaryImageUrl = getPrimaryRoomImage(
+      options?.primaryImageUrl === trimmedImageUrl
+        ? null
+        : options?.primaryImageUrl,
+      nextImageUrls,
     );
-    nextImageUrls = currentImages.filter((url) => url !== trimmedImageUrl);
-    nextPrimaryImageUrl =
-      room?.image_url === trimmedImageUrl
-        ? (nextImageUrls[0] ?? null)
-        : getPrimaryRoomImage(room?.image_url, nextImageUrls);
   }
 
   const objectPath = getRoomImageStoragePath(trimmedImageUrl);
-
-  if (objectPath) {
-    const { error: removeError } = await supabase.storage
-      .from(ROOM_IMAGES_BUCKET)
-      .remove([objectPath]);
-
-    if (removeError) throw new Error(removeError.message);
+  if (!objectPath) {
+    throw new Error("Unable to resolve room image storage path");
   }
 
+  const { error: removeError } = await serviceSupabase.storage
+    .from(ROOM_IMAGES_BUCKET)
+    .remove([objectPath]);
+
+  if (removeError) throw new Error(removeError.message);
+
   if (roomId && nextImageUrls) {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceSupabase
       .from("rooms")
       .update({
         image_url: nextPrimaryImageUrl,

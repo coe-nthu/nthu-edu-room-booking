@@ -62,10 +62,20 @@ type RoomFormDialogProps = {
   room?: Room
   /** 現有空間類型清單，用於下拉選單 */
   roomTypeOptions?: string[]
+  onRoomImagesChange?: (
+    roomId: string,
+    images: { image_url: string | null; image_urls: string[] },
+  ) => void
   children: React.ReactNode
 }
 
-export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: RoomFormDialogProps) {
+export function RoomFormDialog({
+  mode,
+  room,
+  roomTypeOptions = [],
+  onRoomImagesChange,
+  children,
+}: RoomFormDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
@@ -297,22 +307,29 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
 
   const handleRemoveImage = async (targetUrl: string) => {
     setDeletingImageUrl(targetUrl)
+    const nextImages = imageUrls.filter((url) => url !== targetUrl)
+    const nextPrimaryImageUrl =
+      primaryImageUrl === targetUrl ? nextImages[0] || "" : primaryImageUrl
 
     try {
-      const result = await deleteRoomImage(
-        targetUrl,
-        mode === "edit" ? room?.id : undefined,
-      )
+      const result = await deleteRoomImage(targetUrl, {
+        roomId: mode === "edit" ? room?.id : undefined,
+        imageUrls: nextImages,
+        primaryImageUrl: nextPrimaryImageUrl,
+      })
 
       if (mode === "edit" && result.image_urls) {
         setImageUrls(result.image_urls)
         setPrimaryImageUrl(result.image_url || "")
-      } else {
-        const nextImages = imageUrls.filter((url) => url !== targetUrl)
-        setImageUrls(nextImages)
-        if (primaryImageUrl === targetUrl) {
-          setPrimaryImageUrl(nextImages[0] || "")
+        if (room?.id) {
+          onRoomImagesChange?.(room.id, {
+            image_url: result.image_url,
+            image_urls: result.image_urls,
+          })
         }
+      } else {
+        setImageUrls(nextImages)
+        setPrimaryImageUrl(nextPrimaryImageUrl)
       }
 
       toast.success("圖片已刪除")

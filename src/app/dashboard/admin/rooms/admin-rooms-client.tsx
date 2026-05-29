@@ -160,6 +160,23 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
     }
   };
 
+  const handleRoomImagesChange = (
+    roomId: string,
+    images: { image_url: string | null; image_urls: string[] },
+  ) => {
+    setRooms((currentRooms) =>
+      currentRooms.map((room) =>
+        room.id === roomId
+          ? {
+              ...room,
+              image_url: images.image_url,
+              image_urls: images.image_urls,
+            }
+          : room,
+      ),
+    );
+  };
+
   // 在 mounted 之前顯示 loading 狀態
   if (!mounted) {
     return (
@@ -357,6 +374,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                     mode="edit"
                     room={room}
                     roomTypeOptions={roomTypeOptions}
+                    onRoomImagesChange={handleRoomImagesChange}
                   >
                     <Button variant="ghost" size="icon">
                       <Pencil className="h-4 w-4" />
