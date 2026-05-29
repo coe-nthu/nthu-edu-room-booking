@@ -66,7 +66,10 @@ export async function updateSession(request: NextRequest) {
     if (cachedStatus) {
       try {
         const parsed = JSON.parse(cachedStatus);
-        if (parsed.userId === user.id) {
+        if (
+          parsed.userId === user.id &&
+          (parsed.isApproved || parsed.isAdmin)
+        ) {
           isApproved = parsed.isApproved;
           isAdmin = parsed.isAdmin;
           statusSource = "cookie";
@@ -91,17 +94,22 @@ export async function updateSession(request: NextRequest) {
       isAdmin = profile?.role === "admin";
       isApproved = isAdmin || (profile?.is_approved ?? false);
 
-      // Cache this status in cookie for 5 minutes to avoid DB hit on every request
-      supabaseResponse.cookies.set(
-        "user_auth_status",
-        JSON.stringify({ userId: user.id, isApproved, isAdmin }),
-        {
-          maxAge: 300,
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
-        },
-      );
+      if (isApproved) {
+        // Cache approved users briefly, but never cache pending status so approval
+        // changes can take effect immediately on the pending page.
+        supabaseResponse.cookies.set(
+          "user_auth_status",
+          JSON.stringify({ userId: user.id, isApproved, isAdmin }),
+          {
+            maxAge: 300,
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+          },
+        );
+      } else {
+        supabaseResponse.cookies.delete("user_auth_status");
+      }
     }
 
     const isPendingPage = request.nextUrl.pathname === "/approval-pending";
