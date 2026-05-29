@@ -1,82 +1,131 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { MaintenanceRecord } from "@/utils/supabase/queries"
+import { useState } from "react";
+import { MaintenanceRecord } from "@/utils/supabase/queries";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
-import { toTaipeiTime } from "@/lib/utils"
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { toTaipeiTime } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import Image from "next/image"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from "next/image";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type MaintenanceRecordListProps = {
-  initialRecords: MaintenanceRecord[]
-}
+  initialRecords: MaintenanceRecord[];
+};
 
-export function MaintenanceRecordList({ initialRecords }: MaintenanceRecordListProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null)
+type StatusFilter = "all" | "pending" | "processing" | "completed";
+
+export function MaintenanceRecordList({
+  initialRecords,
+}: MaintenanceRecordListProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selectedRecord, setSelectedRecord] =
+    useState<MaintenanceRecord | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">待處理</Badge>
-      case 'processing':
-        return <Badge className="bg-blue-600 hover:bg-blue-700">處理中</Badge>
-      case 'completed':
-        return <Badge className="bg-green-600 hover:bg-green-700">已完成</Badge>
-      case 'rejected':
-        return <Badge variant="destructive">已駁回</Badge>
+      case "pending":
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+          >
+            待處理
+          </Badge>
+        );
+      case "processing":
+        return <Badge className="bg-blue-600 hover:bg-blue-700">處理中</Badge>;
+      case "completed":
+        return (
+          <Badge className="bg-green-600 hover:bg-green-700">已完成</Badge>
+        );
+      case "rejected":
+        return <Badge variant="destructive">已駁回</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>;
     }
-  }
+  };
 
-  const filteredRecords = initialRecords.filter(record => {
+  const filteredRecords = initialRecords.filter((record) => {
     // Only show visible records (unless user is admin, but this list is for public)
     // The query already handles is_hidden for public, but let's be safe
-    if (record.is_hidden) return false
+    if (record.is_hidden) return false;
 
-    const searchContent = `${record.location} ${record.applicant_name} ${record.description}`.toLowerCase()
-    return searchContent.includes(searchTerm.toLowerCase())
-  })
+    if (statusFilter !== "all" && record.status !== statusFilter) {
+      return false;
+    }
+
+    const searchContent =
+      `${record.location} ${record.applicant_name} ${record.description}`.toLowerCase();
+    return searchContent.includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex w-full max-w-sm items-center space-x-2">
-        <Input
-          placeholder="搜尋位置、申請人或描述..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <Search className="h-4 w-4 text-muted-foreground" />
+      <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Input
+            placeholder="搜尋位置、申請人或描述..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pr-9"
+          />
+          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
+        <div className="sm:w-44">
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="篩選狀態" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部狀態</SelectItem>
+              <SelectItem value="pending">待處理</SelectItem>
+              <SelectItem value="processing">處理中</SelectItem>
+              <SelectItem value="completed">已完成</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredRecords.map((record) => (
-          <Card 
-            key={record.id} 
+          <Card
+            key={record.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors"
             onClick={() => setSelectedRecord(record)}
           >
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-medium line-clamp-1" title={record.location}>
+                <CardTitle
+                  className="text-lg font-medium line-clamp-1"
+                  title={record.location}
+                >
                   {record.location}
                 </CardTitle>
                 {getStatusBadge(record.status)}
@@ -97,15 +146,22 @@ export function MaintenanceRecordList({ initialRecords }: MaintenanceRecordListP
         ))}
       </div>
 
-      <Dialog open={!!selectedRecord} onOpenChange={(open) => !open && setSelectedRecord(null)}>
+      <Dialog
+        open={!!selectedRecord}
+        onOpenChange={(open) => !open && setSelectedRecord(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>報修詳情</DialogTitle>
             <DialogDescription>
-              {selectedRecord && format(toTaipeiTime(selectedRecord.created_at), "yyyy/MM/dd HH:mm")}
+              {selectedRecord &&
+                format(
+                  toTaipeiTime(selectedRecord.created_at),
+                  "yyyy/MM/dd HH:mm",
+                )}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedRecord && (
             <ScrollArea className="flex-1 pr-4">
               <div className="space-y-6">
@@ -163,6 +219,5 @@ export function MaintenanceRecordList({ initialRecords }: MaintenanceRecordListP
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
-
