@@ -13,6 +13,17 @@ function formatFileSize(size: number) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function getDownloadUrl(file: DocumentDownloadFile) {
+  try {
+    const downloadUrl = new URL(file.file_url);
+    downloadUrl.searchParams.set("download", file.file_name);
+    return downloadUrl.toString();
+  } catch {
+    const separator = file.file_url.includes("?") ? "&" : "?";
+    return `${file.file_url}${separator}download=${encodeURIComponent(file.file_name)}`;
+  }
+}
+
 export function DocumentDownloadList({ files }: DocumentDownloadListProps) {
   if (files.length === 0) {
     return (
@@ -48,7 +59,7 @@ export function DocumentDownloadList({ files }: DocumentDownloadListProps) {
               </a>
             </Button>
             <Button asChild className="w-full sm:w-auto">
-              <a href={file.file_url} target="_blank" rel="noreferrer" download>
+              <a href={getDownloadUrl(file)} download={file.file_name}>
                 <Download className="mr-2 h-4 w-4" />
                 下載
               </a>
