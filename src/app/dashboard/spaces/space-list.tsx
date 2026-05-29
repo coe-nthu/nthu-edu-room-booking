@@ -3,7 +3,11 @@
 import { useState, useMemo, useDeferredValue } from "react";
 import { Room } from "@/utils/supabase/queries";
 import { compareFloors, compareRoomsByFloor } from "@/lib/rooms";
-import { DEFAULT_ROOM_IMAGE_SRC, getRoomImageSrc } from "@/lib/room-images";
+import {
+  DEFAULT_ROOM_IMAGE_SRC,
+  getPrimaryRoomImage,
+  getRoomImageSrc,
+} from "@/lib/room-images";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -173,7 +177,7 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
               <Card className="h-full overflow-hidden flex flex-col group-hover:shadow-md transition-shadow">
                 <div className="relative aspect-video bg-muted">
                   <RoomImage
-                    src={room.image_url}
+                    src={getPrimaryRoomImage(room.image_url, room.image_urls)}
                     alt={room.name}
                     priority={index < 4}
                   />

@@ -67,7 +67,7 @@ describe("room query helpers", () => {
 
   it("fetches lightweight room card columns", async () => {
     const query = createQuery({
-      data: [{ id: "room-1", image_url: "image.jpg" }],
+      data: [{ id: "room-1", image_url: "image.jpg", image_urls: ["image.jpg"] }],
       error: null,
     });
     createClientMock.mockResolvedValue({
@@ -77,7 +77,9 @@ describe("room query helpers", () => {
 
     const rooms = await getRoomCards();
 
-    expect(rooms).toEqual([{ id: "room-1", image_url: "image.jpg" }]);
+    expect(rooms).toEqual([
+      { id: "room-1", image_url: "image.jpg", image_urls: ["image.jpg"] },
+    ]);
     expect(query.select).toHaveBeenCalledWith(ROOM_CARD_COLUMNS);
     expect(query.eq).toHaveBeenCalledWith("is_active", true);
   });

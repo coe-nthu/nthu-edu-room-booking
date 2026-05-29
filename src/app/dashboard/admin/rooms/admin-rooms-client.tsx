@@ -3,7 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Room } from "@/utils/supabase/queries";
 import { compareFloors, compareRoomsByFloor } from "@/lib/rooms";
-import { DEFAULT_ROOM_IMAGE_SRC, getRoomImageSrc } from "@/lib/room-images";
+import {
+  DEFAULT_ROOM_IMAGE_SRC,
+  getPrimaryRoomImage,
+  getRoomImageSrc,
+} from "@/lib/room-images";
 import {
   Table,
   TableBody,
@@ -317,7 +321,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
               <TableRow key={room.id}>
                 <TableCell>
                   <div className="relative w-16 h-10 bg-muted rounded overflow-hidden">
-                    <AdminRoomImage src={room.image_url} alt={room.name} />
+                    <AdminRoomImage room={room} alt={room.name} />
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{room.name}</TableCell>
@@ -390,11 +394,12 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
   );
 }
 
-function AdminRoomImage({ src, alt }: { src: string | null; alt: string }) {
+function AdminRoomImage({ room, alt }: { room: Room; alt: string }) {
   const [error, setError] = useState(false);
+  const primaryImage = getPrimaryRoomImage(room.image_url, room.image_urls);
   const finalSrc = error
     ? DEFAULT_ROOM_IMAGE_SRC
-    : getRoomImageSrc(src, { width: 160, height: 100, quality: 60 });
+    : getRoomImageSrc(primaryImage, { width: 160, height: 100, quality: 60 });
 
   return (
     <Image

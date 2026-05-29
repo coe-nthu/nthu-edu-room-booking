@@ -18,6 +18,8 @@ export function createSupabaseQueryMock(resultsByTable: ResultQueue) {
   ) as ResultQueue;
 
   const calls: { table: string; method: string; args: unknown[] }[] = [];
+  const storageCalls: { bucket: string; method: string; args: unknown[] }[] =
+    [];
 
   const nextResult = (table: string): QueryResult => {
     const result = queues[table]?.shift();
@@ -85,8 +87,12 @@ export function createSupabaseQueryMock(resultsByTable: ResultQueue) {
     },
     from: vi.fn((table: string) => createQuery(table)),
     storage: {
-      from: vi.fn(() => ({
+      from: vi.fn((bucket: string) => ({
         upload: vi.fn(async () => ({ error: null })),
+        remove: vi.fn(async (...args: unknown[]) => {
+          storageCalls.push({ bucket, method: "remove", args });
+          return { data: null, error: null };
+        }),
         getPublicUrl: vi.fn(() => ({
           data: { publicUrl: "https://example.com/image.jpg" },
         })),
@@ -94,5 +100,5 @@ export function createSupabaseQueryMock(resultsByTable: ResultQueue) {
     },
   };
 
-  return { client, calls };
+  return { client, calls, storageCalls };
 }

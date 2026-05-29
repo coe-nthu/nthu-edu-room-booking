@@ -5,6 +5,22 @@ import {
 } from "@/lib/booking-series";
 import type { Booking } from "./queries";
 
+const DEFAULT_ADMIN_BOOKINGS_PAGE_SIZE = 50;
+const MAX_ADMIN_BOOKINGS_PAGE_SIZE = 100;
+
+function clampPageSize(pageSize?: number) {
+  if (!Number.isFinite(pageSize)) return DEFAULT_ADMIN_BOOKINGS_PAGE_SIZE;
+  return Math.min(
+    Math.max(Math.trunc(pageSize ?? DEFAULT_ADMIN_BOOKINGS_PAGE_SIZE), 1),
+    MAX_ADMIN_BOOKINGS_PAGE_SIZE,
+  );
+}
+
+function normalizePage(page?: number) {
+  if (!Number.isFinite(page)) return 1;
+  return Math.max(Math.trunc(page ?? 1), 1);
+}
+
 export type ApprovalStepInfo = {
   id: string;
   step_order: number;
@@ -37,67 +53,74 @@ export type AdminBooking = Booking & {
   recurring_slots?: RecurringBookingSlot[];
 };
 
+export type AdminBookingsResult = {
+  bookings: AdminBooking[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+type AdminBookingRpcRow = Omit<
+  AdminBooking,
+  "room" | "user" | "recurring_slots"
+> & {
+  room: AdminBooking["room"] | AdminBooking["room"][] | null;
+  user_profile: AdminBooking["user"] | AdminBooking["user"][] | null;
+  recurring_slots: RecurringBookingSlot[] | null;
+  total_count: number | null;
+};
+
 export async function getAdminBookings(filters?: {
   status?: "pending" | "approved" | "rejected" | "all";
   search?: string;
-}): Promise<AdminBooking[]> {
+  includeHistory?: boolean;
+  page?: number;
+  pageSize?: number;
+}): Promise<AdminBookingsResult> {
   // This function is only called after the admin guard in the page layer.
   // Use the service client here so the admin list can reliably hydrate related
   // profile/department data instead of depending on the caller's RLS context.
   const supabase = createServiceClient();
+  const page = normalizePage(filters?.page);
+  const pageSize = clampPageSize(filters?.pageSize);
+  const offset = (page - 1) * pageSize;
 
-  let query = supabase.from("bookings").select(`
-      id,
-      user_id,
-      room_id,
-      start_time,
-      end_time,
-      status,
-      purpose,
-      created_at,
-      recurrence_group_id,
-      recurrence_frequency,
-      recurrence_until,
-      room:rooms (
-        name,
-        room_code
-      ),
-      user:profiles!bookings_user_id_fkey (
-        full_name,
-        student_id,
-        username, 
-        department:departments (
-           name
-        )
-      )
-    `);
-
-  // Filter by status
-  if (filters?.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
-  } else if (!filters?.status || filters.status === "all") {
-    // Include pending, approved, and rejected (exclude cancelled)
-    query = query.in("status", ["pending", "approved", "rejected"]);
-  }
-
-  // Search filter (by user name or room name/code)
-  if (filters?.search) {
-    // Note: Supabase doesn't support full-text search across relations easily
-    // We'll filter in memory after fetching, or use a more complex query
-    // For now, we'll fetch and filter in memory for simplicity
-  }
-
-  // Order by status (pending first), then by created_at
-  query = query.order("created_at", { ascending: true });
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc("search_admin_bookings", {
+    p_status: filters?.status || "pending",
+    p_search: filters?.search || null,
+    p_include_history: filters?.includeHistory ?? false,
+    p_limit: pageSize,
+    p_offset: offset,
+  });
 
   if (error) {
     console.error("Error fetching admin bookings:", error);
-    return [];
+    return {
+      bookings: [],
+      totalCount: 0,
+      page,
+      pageSize,
+      totalPages: 1,
+    };
   }
 
-  let bookings = (data as unknown as AdminBooking[]) || [];
+  const rows = (data as unknown as AdminBookingRpcRow[]) || [];
+  if (rows.length === 0 && page > 1) {
+    return getAdminBookings({ ...filters, page: 1, pageSize });
+  }
+
+  let bookings = rows.map((booking) => {
+    const { user_profile, total_count, ...bookingFields } = booking;
+    void total_count;
+
+    return {
+      ...bookingFields,
+      user: user_profile,
+      recurring_slots: booking.recurring_slots ?? undefined,
+    };
+  }) as unknown as AdminBooking[];
+  const totalCount = rows[0]?.total_count ?? 0;
 
   const userIds = [
     ...new Set(bookings.map((booking) => booking.user_id).filter(Boolean)),
@@ -115,7 +138,7 @@ export async function getAdminBookings(filters?: {
     }
   }
 
-  // Enrich bookings with approval steps data
+  // Enrich the current page with approval steps data.
   if (bookings.length > 0) {
     const bookingIds = bookings.map((b) => b.id);
     const supabaseAdmin = createServiceClient();
@@ -162,31 +185,6 @@ export async function getAdminBookings(filters?: {
     }
   }
 
-  // Apply search filter in memory if needed
-  if (filters?.search) {
-    const searchTerm = filters.search.toLowerCase();
-    bookings = bookings.filter((booking) => {
-      const safeRoom = Array.isArray(booking.room)
-        ? booking.room[0]
-        : booking.room;
-      const safeUser = Array.isArray(booking.user)
-        ? booking.user[0]
-        : booking.user;
-
-      const userName = safeUser?.full_name?.toLowerCase() || "";
-      const studentId = safeUser?.student_id?.toLowerCase() || "";
-      const roomName = safeRoom?.name?.toLowerCase() || "";
-      const roomCode = safeRoom?.room_code?.toLowerCase() || "";
-
-      return (
-        userName.includes(searchTerm) ||
-        studentId.includes(searchTerm) ||
-        roomName.includes(searchTerm) ||
-        roomCode.includes(searchTerm)
-      );
-    });
-  }
-
   // Ensure ALL returns have valid room and user objects to prevent frontend crashes
   bookings = bookings.map((booking) => {
     const safeRoom = Array.isArray(booking.room)
@@ -220,47 +218,24 @@ export async function getAdminBookings(filters?: {
     };
   });
 
-  // Collapse recurring bookings into one logical application for admin review.
-  const groupedBookings = new Map<string, AdminBooking[]>();
-  for (const booking of bookings) {
-    const key = booking.recurrence_group_id ?? booking.id;
-    if (!groupedBookings.has(key)) groupedBookings.set(key, []);
-    groupedBookings.get(key)!.push(booking);
-  }
+  bookings = bookings.map((booking) => ({
+    ...booking,
+    recurring_slots: booking.recurring_slots
+      ? sortRecurringSlots(booking.recurring_slots)
+      : undefined,
+  }));
 
-  bookings = Array.from(groupedBookings.values()).map((group) => {
-    const sortedGroup = sortRecurringSlots(group);
-    const representative = sortedGroup[0];
-    return {
-      ...representative,
-      recurring_slots:
-        group.length > 1
-          ? sortedGroup.map((booking) => ({
-              id: booking.id,
-              start_time: booking.start_time,
-              end_time: booking.end_time,
-              status: booking.status,
-            }))
-          : undefined,
-    };
-  });
-
-  // Sort: pending first, then by start_time descending (newest time first)
-  bookings.sort((a, b) => {
-    // First, sort by status: pending first
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (a.status !== "pending" && b.status === "pending") return 1;
-
-    // If same status (both pending or both not pending), sort by start_time descending (newest first)
-    const timeA = new Date(a.start_time).getTime();
-    const timeB = new Date(b.start_time).getTime();
-    return timeB - timeA; // Descending order (newest first)
-  });
-
-  return bookings;
+  return {
+    bookings,
+    totalCount,
+    page,
+    pageSize,
+    totalPages: Math.max(Math.ceil(totalCount / pageSize), 1),
+  };
 }
 
 // Keep the old function for backward compatibility
 export async function getPendingBookings(): Promise<AdminBooking[]> {
-  return getAdminBookings({ status: "pending" });
+  const result = await getAdminBookings({ status: "pending" });
+  return result.bookings;
 }

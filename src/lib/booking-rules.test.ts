@@ -36,6 +36,7 @@ function room(overrides: Partial<Room> = {}): Room {
     floor: overrides.floor ?? "1F",
     room_type: overrides.room_type ?? "Classroom",
     image_url: overrides.image_url ?? null,
+    image_urls: overrides.image_urls ?? null,
     is_active: overrides.is_active ?? true,
     allow_noon: overrides.allow_noon ?? false,
     admin_only: overrides.admin_only ?? false,

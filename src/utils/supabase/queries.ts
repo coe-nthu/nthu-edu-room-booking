@@ -8,6 +8,7 @@ export const ROOM_CARD_COLUMNS = `
   floor,
   room_type,
   image_url,
+  image_urls,
   is_active,
   admin_only
 `
@@ -22,6 +23,7 @@ export const ROOM_DETAIL_COLUMNS = `
   floor,
   room_type,
   image_url,
+  image_urls,
   is_active,
   allow_noon,
   admin_only
@@ -41,6 +43,7 @@ export type Room = {
   floor: string | null
   room_type: string | null
   image_url: string | null
+  image_urls: string[] | null
   is_active: boolean | null
   allow_noon: boolean | null
   admin_only: boolean | null

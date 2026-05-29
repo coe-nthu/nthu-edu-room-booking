@@ -5,7 +5,7 @@ import { Room } from "@/utils/supabase/queries";
 import { SemesterSetting } from "@/utils/semester";
 import { BookingWidget } from "./booking-widget";
 import { RoomTimetable } from "@/components/booking/room-timetable";
-import { RoomDetailImage } from "./room-detail-image";
+import { RoomImageGallery } from "./room-detail-image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -65,9 +65,7 @@ export function SpaceBookingClient({
             </div>
           </div>
           {/* Image & Basic Info */}
-          <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-            <RoomDetailImage src={room.image_url} alt={room.name} />
-          </div>
+          <RoomImageGallery room={room} />
 
           <div>
             {/* Booking Widget */}

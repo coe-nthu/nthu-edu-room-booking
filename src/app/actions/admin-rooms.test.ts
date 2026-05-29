@@ -60,6 +60,8 @@ describe("admin room actions", () => {
             name: "New room",
             equipment: [],
             unavailable_periods: [],
+            image_url: null,
+            image_urls: [],
             is_active: true,
             allow_noon: false,
             admin_only: false,
@@ -89,5 +91,84 @@ describe("admin room actions", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/dashboard/spaces");
     expect(revalidatePathMock).toHaveBeenCalledWith("/dashboard/spaces/room-1");
     expect(revalidatePathMock).not.toHaveBeenCalledWith("/dashboard/book");
+  });
+
+  it("keeps the selected primary image in sync with the gallery", async () => {
+    const { client, calls } = createSupabaseQueryMock({
+      profiles: [{ data: { role: "admin" }, error: null }],
+      rooms: [{ data: null, error: null }],
+    });
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { id: "admin-1" } },
+    });
+    createClientMock.mockResolvedValue(client);
+    const { updateRoom } = await import("@/app/actions/admin-rooms");
+
+    await updateRoom("room-1", {
+      image_url: "secondary.jpg",
+      image_urls: ["primary.jpg", "secondary.jpg"],
+    });
+
+    expect(calls).toContainEqual(
+      expect.objectContaining({
+        table: "rooms",
+        method: "update",
+        args: [
+          expect.objectContaining({
+            image_url: "secondary.jpg",
+            image_urls: ["primary.jpg", "secondary.jpg"],
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("deletes room images from storage and updates the room gallery", async () => {
+    const { client, calls, storageCalls } = createSupabaseQueryMock({
+      profiles: [{ data: { role: "admin" }, error: null }],
+      rooms: [
+        {
+          data: {
+            image_url: "room-images/old.jpg",
+            image_urls: ["room-images/old.jpg", "room-images/next.jpg"],
+          },
+          error: null,
+        },
+        { data: null, error: null },
+      ],
+    });
+    client.auth.getUser.mockResolvedValue({
+      data: { user: { id: "admin-1" } },
+    });
+    createClientMock.mockResolvedValue(client);
+    const { deleteRoomImage } = await import("@/app/actions/admin-rooms");
+
+    await expect(
+      deleteRoomImage("room-images/old.jpg", "room-1"),
+    ).resolves.toEqual({
+      image_url: "room-images/next.jpg",
+      image_urls: ["room-images/next.jpg"],
+    });
+
+    expect(storageCalls).toContainEqual({
+      bucket: "room-images",
+      method: "remove",
+      args: [["old.jpg"]],
+    });
+    expect(calls).toContainEqual(
+      expect.objectContaining({
+        table: "rooms",
+        method: "update",
+        args: [
+          expect.objectContaining({
+            image_url: "room-images/next.jpg",
+            image_urls: ["room-images/next.jpg"],
+          }),
+        ],
+      }),
+    );
+    expect(revalidatePathMock).toHaveBeenCalledWith("/dashboard/admin/rooms");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/dashboard/spaces");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/dashboard/spaces/room-1");
   });
 });

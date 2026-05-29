@@ -1,60 +1,68 @@
-"use client"
+"use client";
 
-import { useRouter, useSearchParams } from "next/navigation"
-import { Input } from "@/components/ui/input"
+import { useRouter, useSearchParams } from "next/navigation";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Search, RefreshCw } from "lucide-react"
-import { useDebouncedCallback } from "use-debounce"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
+} from "@/components/ui/select";
+import { Search, RefreshCw } from "lucide-react";
+import { useDebouncedCallback } from "use-debounce";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface ApprovalToolbarProps {
-  showHistory: boolean
-  onShowHistoryChange: (value: boolean) => void
+  showHistory: boolean;
+  onShowHistoryChange: (value: boolean) => void;
 }
 
-export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalToolbarProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isRefreshing, setIsRefreshing] = useState(false)
+export function ApprovalToolbar({
+  showHistory,
+  onShowHistoryChange,
+}: ApprovalToolbarProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const currentStatus = searchParams.get('status') || 'pending'
-  const currentSearch = searchParams.get('search') || ''
+  const currentStatus = searchParams.get("status") || "pending";
+  const currentSearch = searchParams.get("search") || "";
 
-  const updateSearchParams = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (value && value !== 'pending') {
-      params.set(key, value)
+  const updateSearchParams = (
+    key: string,
+    value: string,
+    defaultValue = "",
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value && value !== defaultValue) {
+      params.set(key, value);
     } else {
-      params.delete(key)
+      params.delete(key);
     }
-    router.push(`/dashboard/admin/approvals?${params.toString()}`)
-  }
+    params.delete("page");
+    router.push(`/dashboard/admin/approvals?${params.toString()}`);
+  };
 
   const debouncedSearch = useDebouncedCallback((value: string) => {
-    updateSearchParams('search', value)
-  }, 300)
+    updateSearchParams("search", value);
+  }, 300);
 
   const handleStatusChange = (value: string) => {
-    updateSearchParams('status', value)
-  }
+    updateSearchParams("status", value, "pending");
+  };
 
   const handleRefresh = () => {
-    setIsRefreshing(true)
-    router.refresh()
+    setIsRefreshing(true);
+    router.refresh();
     // 重置 loading 狀態（refresh 是異步的，但我們可以設定一個短暫的延遲）
     setTimeout(() => {
-      setIsRefreshing(false)
-    }, 500)
-  }
+      setIsRefreshing(false);
+    }, 500);
+  };
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
@@ -77,7 +85,7 @@ export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalTo
           className="bg-white hover:bg-gray-50 border-gray-300"
         >
           <RefreshCw
-            className={`h-4 w-4 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`}
+            className={`h-4 w-4 text-gray-700 ${isRefreshing ? "animate-spin" : ""}`}
           />
         </Button>
         <div className="w-full">
@@ -99,10 +107,11 @@ export function ApprovalToolbar({ showHistory, onShowHistoryChange }: ApprovalTo
             checked={showHistory}
             onCheckedChange={onShowHistoryChange}
           />
-          <Label htmlFor="show-history" className="text-sm whitespace-nowrap">顯示歷史紀錄</Label>
+          <Label htmlFor="show-history" className="text-sm whitespace-nowrap">
+            顯示歷史紀錄
+          </Label>
         </div>
       </div>
     </div>
-  )
+  );
 }
-

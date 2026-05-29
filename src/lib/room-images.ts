@@ -1,5 +1,6 @@
 export const DEFAULT_ROOM_IMAGE_SRC = "/login_cover.jpg";
 export const ROOM_IMAGES_BUCKET = "room-images";
+export const MAX_ROOM_IMAGES = 10;
 
 type RoomImageTransform = {
   width: number;
@@ -7,6 +8,59 @@ type RoomImageTransform = {
   quality?: number;
   resize?: "cover" | "contain" | "fill";
 };
+
+export function normalizeRoomImageList(
+  imageUrls: unknown,
+  primaryImageUrl?: string | null,
+) {
+  const urls = Array.isArray(imageUrls) ? imageUrls : [];
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const url of [...urls, primaryImageUrl]) {
+    if (typeof url !== "string") continue;
+
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl || seen.has(trimmedUrl)) continue;
+
+    seen.add(trimmedUrl);
+    normalized.push(trimmedUrl);
+
+    if (normalized.length >= MAX_ROOM_IMAGES) break;
+  }
+
+  return normalized;
+}
+
+export function getPrimaryRoomImage(
+  imageUrl: string | null | undefined,
+  imageUrls: unknown,
+) {
+  const normalizedImages = normalizeRoomImageList(imageUrls, imageUrl);
+  const normalizedPrimary = imageUrl?.trim();
+
+  if (normalizedPrimary && normalizedImages.includes(normalizedPrimary)) {
+    return normalizedPrimary;
+  }
+
+  return normalizedImages[0] ?? null;
+}
+
+export function getRoomGalleryImages(
+  imageUrl: string | null | undefined,
+  imageUrls: unknown,
+) {
+  const images = normalizeRoomImageList(imageUrls, imageUrl);
+  const primaryImage = getPrimaryRoomImage(imageUrl, images);
+
+  return {
+    primaryImage,
+    thumbnailImages: primaryImage
+      ? images.filter((image) => image !== primaryImage)
+      : images,
+    images,
+  };
+}
 
 function getSupabaseUrl() {
   return process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? null;
@@ -16,21 +70,30 @@ function encodeObjectPath(objectPath: string) {
   return objectPath.split("/").map(encodeURIComponent).join("/");
 }
 
-function getRoomImageObjectPath(src: string, supabaseUrl: string | null) {
-  const withoutBucketPrefix = src
+export function getRoomImageStoragePath(
+  src: string | null | undefined,
+  supabaseUrl = getSupabaseUrl(),
+) {
+  const trimmedSrc = src?.trim();
+
+  if (!trimmedSrc || trimmedSrc.startsWith("/")) {
+    return null;
+  }
+
+  const withoutBucketPrefix = trimmedSrc
     .replace(/^\/+/, "")
     .replace(/^room-images\//, "");
 
-  if (!/^https?:\/\//i.test(src)) {
+  if (!/^https?:\/\//i.test(trimmedSrc)) {
     return withoutBucketPrefix;
   }
 
-  if (!supabaseUrl || !src.startsWith(`${supabaseUrl}/`)) {
+  if (!supabaseUrl || !trimmedSrc.startsWith(`${supabaseUrl}/`)) {
     return null;
   }
 
   try {
-    const url = new URL(src);
+    const url = new URL(trimmedSrc);
     const match = url.pathname.match(
       /^\/storage\/v1\/(?:object\/public|render\/image\/public)\/room-images\/(.+)$/,
     );
@@ -73,7 +136,7 @@ export function getRoomImageSrc(
   }
 
   const supabaseUrl = getSupabaseUrl();
-  const objectPath = getRoomImageObjectPath(trimmedSrc, supabaseUrl);
+  const objectPath = getRoomImageStoragePath(trimmedSrc, supabaseUrl);
 
   if (!objectPath) {
     return /^https?:\/\//i.test(trimmedSrc)

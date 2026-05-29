@@ -70,16 +70,12 @@ export type Booking = {
 
 interface BookingListProps {
   initialBookings: Booking[];
-  showHistory: boolean;
 }
 
 type SortField = "department" | "room" | "time" | "created_at" | null;
 type SortOrder = "asc" | "desc" | null;
 
-export function BookingList({
-  initialBookings,
-  showHistory,
-}: BookingListProps) {
+export function BookingList({ initialBookings }: BookingListProps) {
   const [bookings, setBookings] = useState(initialBookings);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
@@ -187,17 +183,8 @@ export function BookingList({
     }
   };
 
-  const filteredBookings = bookings.filter((booking) => {
-    if (showHistory) return true;
-    const latestEndTime =
-      booking.recurring_slots?.at(-1)?.end_time ?? booking.end_time;
-    const endTime = new Date(latestEndTime);
-    const now = new Date();
-    return endTime >= now;
-  });
-
   // Apply sorting
-  const sortedBookings = [...filteredBookings].sort((a, b) => {
+  const sortedBookings = [...bookings].sort((a, b) => {
     // Default sort: pending first, then by start_time descending
     if (!sortField || !sortOrder) {
       // First, sort by status: pending first
@@ -315,9 +302,7 @@ export function BookingList({
                 colSpan={8}
                 className="text-center text-muted-foreground h-24"
               >
-                {showHistory
-                  ? "目前沒有符合條件的預約"
-                  : "目前無有效預約，請開啟歷史紀錄查看過往預約"}
+                目前沒有符合條件的預約
               </TableCell>
             </TableRow>
           ) : (

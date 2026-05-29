@@ -30,11 +30,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { createRoom, updateRoom, uploadRoomImage } from "@/app/actions/admin-rooms"
+import {
+  createRoom,
+  deleteRoomImage,
+  updateRoom,
+  uploadRoomImage,
+} from "@/app/actions/admin-rooms"
 import { RoomAvailabilityTable, UnavailablePeriod } from "./room-availability-table"
 import { toast } from "sonner"
-import { Loader2, Upload, X, HelpCircle } from "lucide-react"
+import { ImagePlus, Loader2, Star, Upload, X, HelpCircle } from "lucide-react"
 import Image from "next/image"
+import {
+  getPrimaryRoomImage,
+  getRoomImageSrc,
+  MAX_ROOM_IMAGES,
+  normalizeRoomImageList,
+} from "@/lib/room-images"
 import {
   Tooltip,
   TooltipContent,
@@ -77,7 +88,12 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
   const [equipment, setEquipment] = useState(
     Array.isArray(room?.equipment) ? room?.equipment.join(", ") : ""
   )
-  const [imageUrl, setImageUrl] = useState(room?.image_url || "")
+  const [imageUrls, setImageUrls] = useState<string[]>(
+    normalizeRoomImageList(room?.image_urls, room?.image_url),
+  )
+  const [primaryImageUrl, setPrimaryImageUrl] = useState(
+    getPrimaryRoomImage(room?.image_url, room?.image_urls) || "",
+  )
   const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>(
     (room?.unavailable_periods && Array.isArray(room.unavailable_periods)) 
       ? room.unavailable_periods 
@@ -98,6 +114,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
   // Image Upload State
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [deletingImageUrl, setDeletingImageUrl] = useState<string | null>(null)
 
   const floorOptions = ["B1F", "1F", "2F", "3F", "4F", "5F", "6F", "7F", "8F"]
 
@@ -153,7 +170,12 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       setEquipment(
         Array.isArray(room.equipment) ? room.equipment.join(", ") : ""
       )
-      setImageUrl(room.image_url || "")
+      const nextImageUrls = normalizeRoomImageList(
+        room.image_urls,
+        room.image_url,
+      )
+      setImageUrls(nextImageUrls)
+      setPrimaryImageUrl(getPrimaryRoomImage(room.image_url, nextImageUrls) || "")
       setUnavailablePeriods(
         (room.unavailable_periods && Array.isArray(room.unavailable_periods))
           ? room.unavailable_periods
@@ -171,7 +193,8 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       setSelectedRoomType("")
       setCustomRoomType("")
       setEquipment("")
-      setImageUrl("")
+      setImageUrls([])
+      setPrimaryImageUrl("")
       setUnavailablePeriods([])
       setAllowNoon(false)
       setAdminOnly(false)
@@ -190,7 +213,8 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         selectedRoomType,
         customRoomType,
         equipment,
-        imageUrl,
+        imageUrls,
+        primaryImageUrl,
         unavailablePeriods,
         allowNoon,
         adminOnly,
@@ -211,7 +235,8 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         selectedRoomType,
         customRoomType,
         equipment,
-        imageUrl,
+        imageUrls,
+        primaryImageUrl,
         unavailablePeriods,
         allowNoon,
         adminOnly,
@@ -227,22 +252,75 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+
+    const remainingSlots = MAX_ROOM_IMAGES - imageUrls.length
+    if (remainingSlots <= 0) {
+      toast.error(`最多只能上傳 ${MAX_ROOM_IMAGES} 張圖片`)
+      e.target.value = ""
+      return
+    }
 
     setIsUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
 
     try {
+      const filesToUpload = files.slice(0, remainingSlots)
+      const uploadedUrls: string[] = []
+
+      for (const file of filesToUpload) {
+        const formData = new FormData()
+        formData.append('file', file)
         const url = await uploadRoomImage(formData)
-        setImageUrl(url)
-        toast.success("圖片上傳成功")
+        uploadedUrls.push(url)
+      }
+
+      const nextImages = normalizeRoomImageList([...imageUrls, ...uploadedUrls])
+      setImageUrls(nextImages)
+      if (!primaryImageUrl && nextImages[0]) {
+        setPrimaryImageUrl(nextImages[0])
+      }
+
+      if (files.length > remainingSlots) {
+        toast.warning(`已上傳前 ${remainingSlots} 張圖片，最多只能保留 ${MAX_ROOM_IMAGES} 張`)
+      } else {
+        toast.success(filesToUpload.length > 1 ? "圖片上傳成功" : "圖片上傳成功")
+      }
     } catch (error) {
         console.error(error)
         toast.error("圖片上傳失敗")
     } finally {
         setIsUploading(false)
+        e.target.value = ""
+    }
+  }
+
+  const handleRemoveImage = async (targetUrl: string) => {
+    setDeletingImageUrl(targetUrl)
+
+    try {
+      const result = await deleteRoomImage(
+        targetUrl,
+        mode === "edit" ? room?.id : undefined,
+      )
+
+      if (mode === "edit" && result.image_urls) {
+        setImageUrls(result.image_urls)
+        setPrimaryImageUrl(result.image_url || "")
+      } else {
+        const nextImages = imageUrls.filter((url) => url !== targetUrl)
+        setImageUrls(nextImages)
+        if (primaryImageUrl === targetUrl) {
+          setPrimaryImageUrl(nextImages[0] || "")
+        }
+      }
+
+      toast.success("圖片已刪除")
+    } catch (error) {
+      console.error(error)
+      toast.error("圖片刪除失敗")
+    } finally {
+      setDeletingImageUrl(null)
     }
   }
 
@@ -261,7 +339,8 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
         room_type: roomType,
         equipment: equipmentArray,
         unavailable_periods: unavailablePeriods,
-        image_url: imageUrl || null, // Ensure empty string becomes null
+        image_url: primaryImageUrl || imageUrls[0] || null,
+        image_urls: imageUrls,
         allow_noon: allowNoon,
         admin_only: adminOnly,
       }
@@ -299,7 +378,7 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
       <DialogContent className={isMeetingRoom ? "sm:max-w-[500px] max-h-[90vh] overflow-y-auto" : "sm:max-w-[1000px] max-h-[90vh] overflow-y-auto"}>
         <form onSubmit={handleSubmit}>
           <div className="absolute right-12 top-4 z-10 flex items-center gap-2">
-            <Button type="submit" disabled={isLoading || isUploading} size="sm" className="h-8">
+            <Button type="submit" disabled={isLoading || isUploading || !!deletingImageUrl} size="sm" className="h-8">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               儲存變更
             </Button>
@@ -317,59 +396,124 @@ export function RoomFormDialog({ mode, room, roomTypeOptions = [], children }: R
           <div className={isMeetingRoom ? "py-4" : "grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 py-4"}>
             <div className="space-y-4">
             {/* Image Upload Section */}
-            <div className="flex flex-col items-center gap-4">
-                <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 flex items-center justify-center group">
-                    {imageUrl ? (
-                        <>
-                            <Image 
-                                src={imageUrl} 
-                                alt="Preview" 
-                                fill 
-                                className="object-cover" 
-                                onError={() => setImageUrl("")} // Fallback on error
-                            />
-                            <div className="absolute top-2 right-2 z-10">
-                                <Button 
-                                    type="button" 
-                                    variant="destructive" 
-                                    size="icon" 
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        setImageUrl("")
-                                    }}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                <Button type="button" variant="secondary" size="sm" className="pointer-events-auto" onClick={() => fileInputRef.current?.click()}>
-                                    更換圖片
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="text-center p-4">
-                            <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                上傳封面圖片
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-2">支援 JPG, PNG 格式</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label>空間圖片</Label>
+                <span className="text-xs text-muted-foreground">
+                  {imageUrls.length}/{MAX_ROOM_IMAGES}
+                </span>
+              </div>
+              <div className="relative h-48 w-full overflow-hidden rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted">
+                {primaryImageUrl ? (
+                  <Image
+                    src={getRoomImageSrc(primaryImageUrl)}
+                    alt="主圖預覽"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+                    <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      上傳空間圖片
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      最多 {MAX_ROOM_IMAGES} 張，第一張會自動設為主圖
+                    </p>
+                  </div>
+                )}
+                {primaryImageUrl && (
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/45 p-2">
+                    <span className="inline-flex items-center gap-1 rounded bg-background/90 px-2 py-1 text-xs font-medium">
+                      <Star className="h-3 w-3 fill-current" />
+                      主圖
+                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading || !!deletingImageUrl || imageUrls.length >= MAX_ROOM_IMAGES}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      新增圖片
+                    </Button>
+                  </div>
+                )}
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                )}
+              </div>
+              {imageUrls.length > 0 && (
+                <div className="grid grid-cols-5 gap-2">
+                  {imageUrls.map((url, index) => {
+                    const isPrimary = url === primaryImageUrl
+
+                    return (
+                      <div
+                        key={`${url}-${index}`}
+                        className={`group relative aspect-square overflow-hidden rounded-md border bg-muted ${
+                          isPrimary ? "ring-2 ring-primary" : ""
+                        }`}
+                      >
+                        <Image
+                          src={getRoomImageSrc(url, {
+                            width: 120,
+                            height: 120,
+                            quality: 60,
+                          })}
+                          alt={`空間圖片 ${index + 1}`}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                        <div className="absolute inset-0 flex flex-col justify-between bg-black/45 p-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            disabled={isPrimary}
+                            onClick={() => setPrimaryImageUrl(url)}
+                          >
+                            {isPrimary ? "主圖" : "設為主圖"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="ml-auto h-7 w-7"
+                            disabled={deletingImageUrl === url}
+                            onClick={() => handleRemoveImage(url)}
+                          >
+                            {deletingImageUrl === url ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
-                    )}
-                    {isUploading && (
-                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                    )}
+                      </div>
+                    )
+                  })}
                 </div>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                />
+              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -41,6 +41,7 @@ function room(overrides: Partial<Room> = {}): Room {
     floor: overrides.floor ?? "1F",
     room_type: overrides.room_type ?? "Meeting",
     image_url: overrides.image_url ?? null,
+    image_urls: overrides.image_urls ?? null,
     is_active: overrides.is_active ?? true,
     allow_noon: overrides.allow_noon ?? true,
     admin_only: overrides.admin_only ?? false,
@@ -49,8 +50,8 @@ function room(overrides: Partial<Room> = {}): Room {
 
 const semesters: SemesterSetting[] = [];
 const selectedSlot = {
-  start: new Date("2026-05-28T09:00:00+08:00"),
-  end: new Date("2026-05-28T10:00:00+08:00"),
+  start: new Date("2026-06-11T09:00:00+08:00"),
+  end: new Date("2026-06-11T10:00:00+08:00"),
 };
 
 function createLocalStorageMock(): Storage {
@@ -163,7 +164,7 @@ describe("BookingWidget", () => {
         end: selectedSlot.end.toISOString(),
         purpose: "社團活動討論",
         recurrenceFrequency: "weekly",
-        repeatUntil: "2026-06-18T16:00:00.000Z",
+        repeatUntil: "2026-07-02T16:00:00.000Z",
       }),
     );
 
@@ -183,7 +184,7 @@ describe("BookingWidget", () => {
       screen.getByRole("button", { name: "確認送出" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("共 4 筆申請：5/28、6/4、6/11、6/18"),
+      screen.getByText("共 4 筆申請：6/11、6/18、6/25、7/2"),
     ).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(localStorage.getItem("pendingBooking_room-1")).toBeNull();
@@ -219,7 +220,7 @@ describe("BookingWidget", () => {
     await user.click(screen.getByRole("button", { name: "每週重複" }));
     await user.click(screen.getByRole("button", { name: "選擇結束日期" }));
     await user.click(
-      screen.getByRole("button", { name: "Thursday, June 4th, 2026" }),
+      screen.getByRole("button", { name: "Thursday, June 18th, 2026" }),
     );
     await user.type(screen.getByLabelText("借用事由"), "運科實驗課");
     await user.click(screen.getByRole("button", { name: "確認送出" }));
@@ -232,15 +233,15 @@ describe("BookingWidget", () => {
           roomId: "room-1",
           purpose: "運科實驗課",
           recurrenceFrequency: "weekly",
-          recurrenceUntil: "2026-06-03T16:00:00.000Z",
+          recurrenceUntil: "2026-06-17T16:00:00.000Z",
           slots: [
             {
-              startTime: "2026-05-28T01:00:00.000Z",
-              endTime: "2026-05-28T02:00:00.000Z",
+              startTime: "2026-06-11T01:00:00.000Z",
+              endTime: "2026-06-11T02:00:00.000Z",
             },
             {
-              startTime: "2026-06-04T01:00:00.000Z",
-              endTime: "2026-06-04T02:00:00.000Z",
+              startTime: "2026-06-18T01:00:00.000Z",
+              endTime: "2026-06-18T02:00:00.000Z",
             },
           ],
         }),
@@ -296,7 +297,7 @@ describe("BookingWidget", () => {
         end: selectedSlot.end.toISOString(),
         purpose: "社團活動討論",
         recurrenceFrequency: "weekly",
-        repeatUntil: "2026-07-02T16:00:00.000Z",
+        repeatUntil: "2026-07-16T16:00:00.000Z",
       }),
     );
 
@@ -311,14 +312,14 @@ describe("BookingWidget", () => {
     );
 
     expect(
-      await screen.findByText("共 6 筆申請：5/28、6/4、6/11、6/18"),
+      await screen.findByText("共 6 筆申請：6/11、6/18、6/25、7/2"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("6/25")).not.toBeInTheDocument();
+    expect(screen.queryByText("7/9")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "展開全部 6 個日期" }));
 
     expect(
-      screen.getByText("共 6 筆申請：5/28、6/4、6/11、6/18、6/25、7/2"),
+      screen.getByText("共 6 筆申請：6/11、6/18、6/25、7/2、7/9、7/16"),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "收合日期" }),
