@@ -15,6 +15,7 @@ import {
   ClipboardList,
   LogIn,
   ShieldCheck,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -94,6 +95,11 @@ const adminItems = [
     title: "空間管理",
     url: "/dashboard/admin/rooms",
     icon: LayoutDashboard,
+  },
+  {
+    title: "借用統計",
+    url: "/dashboard/admin/room-analytics",
+    icon: BarChart3,
   },
   {
     title: "報修系統管理",
