@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { Users, Layers, ArrowLeft } from "lucide-react";
+import { Users, Layers, ArrowLeft, StickyNote } from "lucide-react";
 
 type SpaceBookingClientProps = {
   room: Room;
@@ -77,6 +77,20 @@ export function SpaceBookingClient({
               onChange={setSelectedSlot}
             />
           </div>
+
+          <Separator className="my-4" />
+
+          {room.admin_note?.trim() && (
+            <div className="space-y-2">
+              <h3 className="flex items-center gap-2 font-semibold">
+                <StickyNote className="h-4 w-4 text-muted-foreground" />
+                空間備註
+              </h3>
+              <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                <p className="whitespace-pre-wrap">{room.admin_note}</p>
+              </div>
+            </div>
+          )}
 
           <Separator className="my-4" />
 
