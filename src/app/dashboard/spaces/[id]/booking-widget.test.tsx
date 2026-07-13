@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BookingWidget } from "@/app/dashboard/spaces/[id]/booking-widget";
 import type { Room } from "@/utils/supabase/queries";
@@ -77,6 +77,8 @@ function createLocalStorageMock(): Storage {
 
 describe("BookingWidget", () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-06-01T00:00:00+08:00"));
     vi.unstubAllGlobals();
     vi.stubGlobal("localStorage", createLocalStorageMock());
     pushMock.mockReset();
@@ -86,6 +88,10 @@ describe("BookingWidget", () => {
     localStorage.clear();
     window.history.pushState({}, "", "/dashboard/spaces/room-1");
     useUserMock.mockReturnValue({ user: null, loading: false });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("disables the reserve action until a slot is selected", () => {

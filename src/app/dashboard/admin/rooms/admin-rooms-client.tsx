@@ -194,6 +194,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                 <TableHead>類型</TableHead>
                 <TableHead>樓層</TableHead>
                 <TableHead>人數</TableHead>
+                <TableHead>備註</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
@@ -218,6 +219,9 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-4 w-8" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-6 w-16" />
@@ -329,6 +333,7 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
               <TableHead>類型</TableHead>
               <TableHead>樓層</TableHead>
               <TableHead>人數</TableHead>
+              <TableHead>備註</TableHead>
               <TableHead>狀態</TableHead>
               <TableHead className="text-right">操作</TableHead>
             </TableRow>
@@ -346,6 +351,9 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
                 <TableCell>{room.room_type}</TableCell>
                 <TableCell>{room.floor}</TableCell>
                 <TableCell>{room.capacity}</TableCell>
+                <TableCell className="max-w-[180px] truncate text-muted-foreground">
+                  {room.admin_note?.trim() || "無"}
+                </TableCell>
                 <TableCell>
                   {room.admin_only ? (
                     <Badge

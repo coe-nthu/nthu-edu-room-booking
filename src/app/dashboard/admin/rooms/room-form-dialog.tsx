@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -111,6 +112,7 @@ export function RoomFormDialog({
   )
   const [allowNoon, setAllowNoon] = useState(room?.allow_noon || false)
   const [adminOnly, setAdminOnly] = useState(room?.admin_only || false)
+  const [adminNote, setAdminNote] = useState(room?.admin_note || "")
 
   // Approver State
   const [approvers, setApprovers] = useState<ApproverEntry[]>([])
@@ -193,6 +195,7 @@ export function RoomFormDialog({
       )
       setAllowNoon(room.allow_noon || false)
       setAdminOnly(room.admin_only || false)
+      setAdminNote(room.admin_note || "")
     } else if (open && mode === "create") {
       // Reset to defaults for create mode
       setName("")
@@ -208,6 +211,7 @@ export function RoomFormDialog({
       setUnavailablePeriods([])
       setAllowNoon(false)
       setAdminOnly(false)
+      setAdminNote("")
     }
   }, [open, room, mode, roomTypeOptions])
 
@@ -228,6 +232,7 @@ export function RoomFormDialog({
         unavailablePeriods,
         allowNoon,
         adminOnly,
+        adminNote,
         approvers
       }))
     }
@@ -250,6 +255,7 @@ export function RoomFormDialog({
         unavailablePeriods,
         allowNoon,
         adminOnly,
+        adminNote,
         approvers
       })
       
@@ -360,6 +366,7 @@ export function RoomFormDialog({
         image_urls: imageUrls,
         allow_noon: allowNoon,
         admin_only: adminOnly,
+        admin_note: adminNote,
       }
 
       if (mode === "create") {
@@ -626,6 +633,23 @@ export function RoomFormDialog({
                 value={equipment} 
                 onChange={(e) => setEquipment(e.target.value)} 
                 placeholder="投影機, 白板, 麥克風 (以逗號分隔)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="adminNote">空間備註</Label>
+                <span className="text-xs text-muted-foreground">
+                  {adminNote.length}/200
+                </span>
+              </div>
+              <Textarea
+                id="adminNote"
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value.slice(0, 200))}
+                maxLength={200}
+                placeholder="輸入會顯示在空間借用頁側邊欄的提醒或補充說明"
+                className="min-h-[90px]"
               />
             </div>
 

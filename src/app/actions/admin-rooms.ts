@@ -32,10 +32,20 @@ async function requireAdmin() {
   return supabase;
 }
 
+function normalizeRoomAdminNote(value: string | null | undefined) {
+  const note = value?.trim() || null;
+  if (note && note.length > 200) {
+    throw new Error("空間備註最多 200 字");
+  }
+
+  return note;
+}
+
 export async function createRoom(data: Partial<Room>) {
   const supabase = await requireAdmin();
   const imageUrls = normalizeRoomImageList(data.image_urls, data.image_url);
   const primaryImageUrl = getPrimaryRoomImage(data.image_url, imageUrls);
+  const adminNote = normalizeRoomAdminNote(data.admin_note);
 
   const { error } = await supabase.from("rooms").insert({
     name: data.name,
@@ -50,6 +60,7 @@ export async function createRoom(data: Partial<Room>) {
     is_active: data.is_active ?? true,
     allow_noon: data.allow_noon ?? false,
     admin_only: data.admin_only ?? false,
+    admin_note: adminNote,
   });
 
   if (error) throw new Error(error.message);
@@ -61,6 +72,7 @@ export async function updateRoom(id: string, data: Partial<Room>) {
   const supabase = await requireAdmin();
   const imageUrls = normalizeRoomImageList(data.image_urls, data.image_url);
   const primaryImageUrl = getPrimaryRoomImage(data.image_url, imageUrls);
+  const adminNote = normalizeRoomAdminNote(data.admin_note);
 
   const { error } = await supabase
     .from("rooms")
@@ -76,6 +88,7 @@ export async function updateRoom(id: string, data: Partial<Room>) {
       image_urls: imageUrls,
       allow_noon: data.allow_noon,
       admin_only: data.admin_only,
+      admin_note: adminNote,
     })
     .eq("id", id);
 
