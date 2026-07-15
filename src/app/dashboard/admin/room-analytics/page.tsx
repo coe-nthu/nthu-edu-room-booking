@@ -69,7 +69,7 @@ export default async function AdminRoomAnalyticsPage() {
         借用單位來自借用者的個人資料；顯示「未設定單位」代表該帳號尚未設定系所。
       </p>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">總借用次數</CardTitle>
