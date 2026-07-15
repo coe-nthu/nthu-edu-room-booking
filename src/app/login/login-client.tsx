@@ -35,6 +35,7 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  Mail,
   Search,
 } from "lucide-react";
 import { checkUserExists } from "@/app/actions/auth";
@@ -86,6 +87,9 @@ export default function LoginClient({
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSignupSuccessDialogOpen, setIsSignupSuccessDialogOpen] =
+    useState(false);
+  const [signupSuccessEmail, setSignupSuccessEmail] = useState("");
 
   const [departments] = useState<Department[]>(initialDepartments);
   const selectedDepartment = useMemo(
@@ -320,8 +324,8 @@ export default function LoginClient({
         return;
       }
 
-      // 跳轉到註冊成功頁面
-      router.push(`/signup-success?email=${encodeURIComponent(signUpEmail)}`);
+      setSignupSuccessEmail(signUpEmail);
+      setIsSignupSuccessDialogOpen(true);
     } catch (error: unknown) {
       toast.error("發生未預期的錯誤");
       console.error(error);
@@ -746,6 +750,73 @@ export default function LoginClient({
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={isSignupSuccessDialogOpen}
+        onOpenChange={setIsSignupSuccessDialogOpen}
+      >
+        <DialogContent className="overflow-hidden p-0 sm:max-w-md">
+          <div className="bg-primary px-6 py-5 text-primary-foreground">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15">
+                <Check className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <DialogHeader className="gap-1 text-left">
+                <DialogTitle className="text-xl text-primary-foreground">
+                  註冊成功！
+                </DialogTitle>
+                <p className="text-sm text-primary-foreground/80">
+                  驗證信已寄出
+                </p>
+              </DialogHeader>
+            </div>
+          </div>
+
+          <div className="space-y-5 px-6 pb-6 pt-5">
+            <DialogDescription className="text-base leading-7 text-foreground">
+              請查收信箱，點擊驗證信中的連結，完成帳號啟用流程。
+            </DialogDescription>
+
+            <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-3">
+              <Mail
+                className="mt-0.5 h-5 w-5 shrink-0 text-primary"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">驗證信寄送至</p>
+                <p className="break-all font-medium">{signupSuccessEmail}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+              <p className="font-medium">沒有看到信件嗎？</p>
+              <p className="mt-1 leading-6 text-amber-900/80 dark:text-amber-100/80">
+                請先檢查垃圾郵件或促銷內容資料夾，再回到信箱尋找驗證信。
+              </p>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsSignupSuccessDialogOpen(false);
+                  setAuthView("sign_in");
+                }}
+              >
+                返回登入
+              </Button>
+              <Button
+                onClick={() => {
+                  window.location.href = `mailto:${signupSuccessEmail}`;
+                }}
+              >
+                <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+                開啟郵件應用程式
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
