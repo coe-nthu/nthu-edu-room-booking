@@ -65,6 +65,9 @@ export default async function AdminRoomAnalyticsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">借用統計</h2>
       </div>
+      <p className="text-sm text-muted-foreground">
+        借用單位來自借用者的個人資料；顯示「未設定單位」代表該帳號尚未設定系所。
+      </p>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Card>

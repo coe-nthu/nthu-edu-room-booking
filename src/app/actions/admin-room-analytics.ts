@@ -83,5 +83,24 @@ export async function getRoomBookingStatisticsByDepartment(): Promise<
     return [];
   }
 
-  return data as DepartmentRoomBookingStatistic[];
+  return (data as DepartmentRoomBookingStatistic[]).sort((a, b) => {
+    const aIsUnassigned = a.department_id === null;
+    const bIsUnassigned = b.department_id === null;
+
+    if (aIsUnassigned !== bIsUnassigned) {
+      return aIsUnassigned ? 1 : -1;
+    }
+
+    const departmentOrder = a.department_name.localeCompare(
+      b.department_name,
+      "zh-Hant",
+    );
+    if (departmentOrder !== 0) return departmentOrder;
+
+    if (a.total_booking_count !== b.total_booking_count) {
+      return b.total_booking_count - a.total_booking_count;
+    }
+
+    return a.room_name.localeCompare(b.room_name, "zh-Hant");
+  });
 }
