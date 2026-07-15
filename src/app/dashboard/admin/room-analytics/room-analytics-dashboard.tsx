@@ -24,10 +24,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FilterX, Layers3, Search, SlidersHorizontal } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  FilterX,
+  Layers3,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 
 type AnalysisMode = "room" | "department";
 type AnalyticsRow = RoomBookingStatistic | DepartmentRoomBookingStatistic;
+type SortKey =
+  | "department"
+  | "room"
+  | "status"
+  | "total"
+  | "last30"
+  | "last90"
+  | "average"
+  | "weekday"
+  | "lastBooked";
+type SortDirection = "asc" | "desc";
+type SortState = { key: SortKey; direction: SortDirection };
 
 type RoomAnalyticsDashboardProps = {
   roomStats: RoomBookingStatistic[];
@@ -53,6 +73,130 @@ function isDepartmentRow(
   return "department_name" in row;
 }
 
+const textCollator = new Intl.Collator("zh-Hant", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function getSortValue(row: AnalyticsRow, key: SortKey): string | number | null {
+  switch (key) {
+    case "department":
+      return isDepartmentRow(row) ? row.department_name : null;
+    case "room":
+      return row.room_name;
+    case "status":
+      return row.is_active === false ? 0 : 1;
+    case "total":
+      return row.total_booking_count;
+    case "last30":
+      return row.bookings_last_30_days;
+    case "last90":
+      return row.bookings_last_90_days;
+    case "average":
+      return row.average_bookings_per_month;
+    case "weekday":
+      return row.most_booked_weekday ? row.most_booked_weekday_count : null;
+    case "lastBooked":
+      return row.last_booked_at ? Date.parse(row.last_booked_at) : null;
+  }
+}
+
+function compareRows(a: AnalyticsRow, b: AnalyticsRow, sort: SortState) {
+  const aValue = getSortValue(a, sort.key);
+  const bValue = getSortValue(b, sort.key);
+
+  if (aValue === null && bValue === null) return 0;
+  if (aValue === null) return 1;
+  if (bValue === null) return -1;
+
+  const comparison =
+    typeof aValue === "number" && typeof bValue === "number"
+      ? aValue - bValue
+      : textCollator.compare(String(aValue), String(bValue));
+
+  if (comparison !== 0) {
+    return sort.direction === "asc" ? comparison : -comparison;
+  }
+
+  const roomComparison = textCollator.compare(a.room_name, b.room_name);
+  if (roomComparison !== 0) return roomComparison;
+
+  return textCollator.compare(
+    isDepartmentRow(a) ? a.department_name : "",
+    isDepartmentRow(b) ? b.department_name : "",
+  );
+}
+
+function getInitialDirection(key: SortKey): SortDirection {
+  return [
+    "total",
+    "last30",
+    "last90",
+    "average",
+    "weekday",
+    "lastBooked",
+  ].includes(key)
+    ? "desc"
+    : "asc";
+}
+
+type SortableTableHeadProps = {
+  label: string;
+  sortKey: SortKey;
+  sort: SortState;
+  align?: "left" | "right";
+  onSort: (key: SortKey) => void;
+};
+
+function SortableTableHead({
+  label,
+  sortKey,
+  sort,
+  align = "left",
+  onSort,
+}: SortableTableHeadProps) {
+  const isActive = sort.key === sortKey;
+  const nextDirection = isActive
+    ? sort.direction === "asc"
+      ? "降冪"
+      : "升冪"
+    : getInitialDirection(sortKey) === "asc"
+      ? "升冪"
+      : "降冪";
+  const SortIcon = !isActive
+    ? ArrowUpDown
+    : sort.direction === "asc"
+      ? ArrowUp
+      : ArrowDown;
+
+  return (
+    <TableHead
+      aria-sort={
+        isActive
+          ? sort.direction === "asc"
+            ? "ascending"
+            : "descending"
+          : "none"
+      }
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className={`h-8 px-2 ${align === "right" ? "ml-auto -mr-2" : "-ml-2"}`}
+        onClick={() => onSort(sortKey)}
+        aria-label={`${label}欄位，目前${isActive ? (sort.direction === "asc" ? "升冪" : "降冪") : "未排序"}，點擊切換為${nextDirection}`}
+      >
+        {label}
+        <SortIcon
+          className={isActive ? "text-foreground" : "text-muted-foreground/60"}
+          aria-hidden="true"
+        />
+      </Button>
+    </TableHead>
+  );
+}
+
 export function RoomAnalyticsDashboard({
   roomStats,
   departmentRoomStats,
@@ -62,6 +206,10 @@ export function RoomAnalyticsDashboard({
   const [departmentId, setDepartmentId] = useState("all");
   const [roomId, setRoomId] = useState("all");
   const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState<SortState>({
+    key: "total",
+    direction: "desc",
+  });
 
   const departments = useMemo(() => {
     const departmentMap = new Map<string, string>();
@@ -135,6 +283,10 @@ export function RoomAnalyticsDashboard({
     departmentId !== "all" ||
     roomId !== "all" ||
     status !== "all";
+  const sortedRows = useMemo(
+    () => [...filteredRows].sort((a, b) => compareRows(a, b, sort)),
+    [filteredRows, sort],
+  );
   const maxBookings = Math.max(
     1,
     ...filteredRows.map((row) => row.total_booking_count),
@@ -142,7 +294,23 @@ export function RoomAnalyticsDashboard({
 
   function changeMode(nextMode: AnalysisMode) {
     setMode(nextMode);
-    if (nextMode === "room") setDepartmentId("all");
+    if (nextMode === "room") {
+      setDepartmentId("all");
+      if (sort.key === "department") {
+        setSort({ key: "total", direction: "desc" });
+      }
+    }
+  }
+
+  function changeSort(key: SortKey) {
+    setSort((currentSort) =>
+      currentSort.key === key
+        ? {
+            key,
+            direction: currentSort.direction === "asc" ? "desc" : "asc",
+          }
+        : { key, direction: getInitialDirection(key) },
+    );
   }
 
   function resetFilters() {
@@ -295,15 +463,66 @@ export function RoomAnalyticsDashboard({
         <Table className="min-w-[1040px]">
           <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_var(--border)]">
             <TableRow className="hover:bg-transparent">
-              {mode === "department" && <TableHead>借用單位</TableHead>}
-              <TableHead>空間</TableHead>
-              <TableHead>狀態</TableHead>
-              <TableHead className="text-right">總借用</TableHead>
-              <TableHead className="text-right">近 30 天</TableHead>
-              <TableHead className="text-right">近 90 天</TableHead>
-              <TableHead className="text-right">平均每月</TableHead>
-              <TableHead>常借用日</TableHead>
-              <TableHead>最近借用</TableHead>
+              {mode === "department" && (
+                <SortableTableHead
+                  label="借用單位"
+                  sortKey="department"
+                  sort={sort}
+                  onSort={changeSort}
+                />
+              )}
+              <SortableTableHead
+                label="空間"
+                sortKey="room"
+                sort={sort}
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="狀態"
+                sortKey="status"
+                sort={sort}
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="總借用"
+                sortKey="total"
+                sort={sort}
+                align="right"
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="近 30 天"
+                sortKey="last30"
+                sort={sort}
+                align="right"
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="近 90 天"
+                sortKey="last90"
+                sort={sort}
+                align="right"
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="平均每月"
+                sortKey="average"
+                sort={sort}
+                align="right"
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="常借用日"
+                sortKey="weekday"
+                sort={sort}
+                onSort={changeSort}
+              />
+              <SortableTableHead
+                label="最近借用"
+                sortKey="lastBooked"
+                sort={sort}
+                onSort={changeSort}
+              />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -332,7 +551,7 @@ export function RoomAnalyticsDashboard({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRows.map((row) => {
+              sortedRows.map((row) => {
                 const bookingRatio =
                   (row.total_booking_count / maxBookings) * 100;
 

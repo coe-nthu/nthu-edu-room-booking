@@ -36,6 +36,7 @@ const roomStats = [
     room_name: "會議室",
     room_code: "201",
     is_active: false,
+    total_booking_count: 25,
   }),
 ];
 
@@ -94,5 +95,35 @@ describe("RoomAnalyticsDashboard", () => {
 
     expect(screen.getByText("多功能教室")).toBeTruthy();
     expect(screen.getByText("會議室")).toBeTruthy();
+  });
+
+  it("sorts a column in ascending and descending order", async () => {
+    const user = userEvent.setup();
+    render(
+      <RoomAnalyticsDashboard
+        roomStats={roomStats}
+        departmentRoomStats={departmentRoomStats}
+      />,
+    );
+
+    const totalHeader = screen.getByRole("columnheader", {
+      name: "總借用",
+    });
+    expect(totalHeader).toHaveAttribute("aria-sort", "descending");
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("會議室");
+
+    await user.click(
+      screen.getByRole("button", { name: /總借用欄位.*切換為升冪/ }),
+    );
+
+    expect(totalHeader).toHaveAttribute("aria-sort", "ascending");
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("多功能教室");
+
+    await user.click(
+      screen.getByRole("button", { name: /總借用欄位.*切換為降冪/ }),
+    );
+
+    expect(totalHeader).toHaveAttribute("aria-sort", "descending");
+    expect(screen.getAllByRole("row")[1]).toHaveTextContent("會議室");
   });
 });
