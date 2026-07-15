@@ -19,6 +19,11 @@ export type RoomBookingStatistic = {
   most_booked_weekday_count: number;
 };
 
+export type DepartmentRoomBookingStatistic = RoomBookingStatistic & {
+  department_id: number | null;
+  department_name: string;
+};
+
 async function requireAdmin() {
   const supabase = await createClient();
   const {
@@ -59,4 +64,24 @@ export async function getRoomBookingStatistics(): Promise<
   }
 
   return data as RoomBookingStatistic[];
+}
+
+export async function getRoomBookingStatisticsByDepartment(): Promise<
+  DepartmentRoomBookingStatistic[]
+> {
+  const supabase = await requireAdmin();
+
+  const { data, error } = await supabase
+    .from("room_booking_statistics_by_department")
+    .select("*")
+    .order("department_name", { ascending: true })
+    .order("total_booking_count", { ascending: false })
+    .order("room_name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching department room booking statistics:", error);
+    return [];
+  }
+
+  return data as DepartmentRoomBookingStatistic[];
 }
