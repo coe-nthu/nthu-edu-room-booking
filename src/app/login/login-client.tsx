@@ -342,6 +342,7 @@ export default function LoginClient({
           src="/login_cover.jpg"
           alt="Login Visual"
           fill
+          unoptimized
           className="object-cover"
           priority
         />
@@ -371,6 +372,7 @@ export default function LoginClient({
                 src="/logo.png"
                 alt="Logo"
                 fill
+                unoptimized
                 className="object-contain"
               />
             </div>

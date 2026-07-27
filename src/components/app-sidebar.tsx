@@ -204,6 +204,7 @@ export function AppSidebar() {
               alt="Logo"
               width={32}
               height={32}
+              unoptimized
               className="object-contain"
             />
           </div>
