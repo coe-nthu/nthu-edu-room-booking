@@ -184,6 +184,8 @@ export function ReportDetailDialog({
                           src={url}
                           alt={`附件 ${index + 1}`}
                           fill
+                          unoptimized
+                          sizes="(max-width: 768px) 50vw, 200px"
                           className="object-cover"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">

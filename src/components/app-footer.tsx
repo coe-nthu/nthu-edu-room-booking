@@ -24,6 +24,7 @@ export function AppFooter() {
                 src="/logo.png"
                 alt="竹師教育學院 Logo"
                 fill
+                unoptimized
                 className="object-contain"
               />
             </div>

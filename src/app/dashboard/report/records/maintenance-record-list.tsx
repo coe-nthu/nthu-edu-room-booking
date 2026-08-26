@@ -199,6 +199,8 @@ export function MaintenanceRecordList({
                         src={selectedRecord.image_url}
                         alt="報修照片"
                         fill
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 700px"
                         className="object-contain"
                       />
                     </div>

@@ -401,6 +401,8 @@ export function ReportForm({ defaultValues }: ReportFormProps) {
                           src={file.url}
                           alt={file.name}
                           fill
+                          unoptimized
+                          sizes="200px"
                           className="object-cover"
                         />
                       </div>
