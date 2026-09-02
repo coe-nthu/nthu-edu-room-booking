@@ -21,9 +21,6 @@ describe("getRoomImageSrc", () => {
     expect(getRoomImageSrc("https://cdn.example.com/room.jpg")).toBe(
       "https://cdn.example.com/room.jpg",
     );
-    expect(
-      getRoomImageSrc("https://cdn.example.com/room.jpg", { width: 160 }),
-    ).toBe("https://cdn.example.com/room.jpg");
     expect(getRoomImageSrc("https://example.com/room.jpg")).toBe(
       "https://example.com/room.jpg",
     );
@@ -43,30 +40,15 @@ describe("getRoomImageSrc", () => {
     );
   });
 
-  it("can request a transformed Supabase thumbnail from object paths", () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co/");
-
-    expect(
-      getRoomImageSrc("room-images/floor 1.jpg", {
-        width: 160,
-        height: 100,
-        quality: 60,
-      }),
-    ).toBe(
-      "https://example.supabase.co/storage/v1/render/image/public/room-images/floor%201.jpg?width=160&resize=cover&height=100&quality=60",
-    );
-  });
-
-  it("can request a transformed Supabase thumbnail from stored public URLs", () => {
+  it("normalizes legacy transformed Supabase URLs to standard public object URLs", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co/");
 
     expect(
       getRoomImageSrc(
-        "https://example.supabase.co/storage/v1/object/public/room-images/floor%201.jpg",
-        { width: 160, height: 100, quality: 60 },
+        "https://example.supabase.co/storage/v1/render/image/public/room-images/floor%201.jpg?width=160&resize=cover&height=100&quality=60",
       ),
     ).toBe(
-      "https://example.supabase.co/storage/v1/render/image/public/room-images/floor%201.jpg?width=160&resize=cover&height=100&quality=60",
+      "https://example.supabase.co/storage/v1/object/public/room-images/floor%201.jpg",
     );
   });
 

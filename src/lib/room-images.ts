@@ -2,13 +2,6 @@ export const DEFAULT_ROOM_IMAGE_SRC = "/login_cover.jpg";
 export const ROOM_IMAGES_BUCKET = "room-images";
 export const MAX_ROOM_IMAGES = 10;
 
-type RoomImageTransform = {
-  width: number;
-  height?: number;
-  quality?: number;
-  resize?: "cover" | "contain" | "fill";
-};
-
 export function normalizeRoomImageList(
   imageUrls: unknown,
   primaryImageUrl?: string | null,
@@ -104,27 +97,7 @@ export function getRoomImageStoragePath(
   }
 }
 
-function getTransformParams(transform: RoomImageTransform) {
-  const params = new URLSearchParams({
-    width: String(transform.width),
-    resize: transform.resize ?? "cover",
-  });
-
-  if (transform.height) {
-    params.set("height", String(transform.height));
-  }
-
-  if (transform.quality) {
-    params.set("quality", String(transform.quality));
-  }
-
-  return params;
-}
-
-export function getRoomImageSrc(
-  src: string | null | undefined,
-  transform?: RoomImageTransform,
-) {
+export function getRoomImageSrc(src: string | null | undefined) {
   const trimmedSrc = src?.trim();
 
   if (!trimmedSrc) {
@@ -149,10 +122,6 @@ export function getRoomImageSrc(
   }
 
   const encodedPath = encodeObjectPath(objectPath);
-
-  if (transform) {
-    return `${supabaseUrl}/storage/v1/render/image/public/${ROOM_IMAGES_BUCKET}/${encodedPath}?${getTransformParams(transform)}`;
-  }
 
   return `${supabaseUrl}/storage/v1/object/public/${ROOM_IMAGES_BUCKET}/${encodedPath}`;
 }
