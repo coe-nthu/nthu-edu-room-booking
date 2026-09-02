@@ -40,11 +40,13 @@ vi.mock("next/image", () => ({
       src: string | { src: string };
       fill?: boolean;
       priority?: boolean;
+      unoptimized?: boolean;
     },
   ) => {
     const { src, alt, ...props } = imageProps;
     delete props.fill;
     delete props.priority;
+    delete props.unoptimized;
 
     return React.createElement("img", {
       ...props,

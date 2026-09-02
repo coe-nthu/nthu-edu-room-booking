@@ -104,7 +104,6 @@ export function RoomImageGallery({ room }: { room: Room }) {
                   src={image}
                   alt={`${room.name} 圖片 ${index + 2}`}
                   sizes="112px"
-                  transform={{ width: 224, height: 160, quality: 60 }}
                 />
               </button>
             ))}
@@ -156,7 +155,6 @@ function GalleryImage({
   sizes,
   priority,
   className = "",
-  transform,
   objectFit = "cover",
 }: {
   src: string | null;
@@ -164,13 +162,10 @@ function GalleryImage({
   sizes: string;
   priority?: boolean;
   className?: string;
-  transform?: Parameters<typeof getRoomImageSrc>[1];
   objectFit?: "cover" | "contain";
 }) {
   const [error, setError] = useState(false);
-  const finalSrc = error
-    ? DEFAULT_ROOM_IMAGE_SRC
-    : getRoomImageSrc(src, transform);
+  const finalSrc = error ? DEFAULT_ROOM_IMAGE_SRC : getRoomImageSrc(src);
 
   return (
     <Image
@@ -178,7 +173,6 @@ function GalleryImage({
       alt={alt}
       fill
       sizes={sizes}
-      unoptimized
       priority={priority}
       className={`${objectFit === "contain" ? "object-contain" : "object-cover"} ${className}`}
       onError={() => setError(true)}

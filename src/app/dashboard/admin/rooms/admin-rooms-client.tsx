@@ -423,17 +423,14 @@ export function AdminRoomsClient({ initialRooms }: AdminRoomsClientProps) {
 function AdminRoomImage({ room, alt }: { room: Room; alt: string }) {
   const [error, setError] = useState(false);
   const primaryImage = getPrimaryRoomImage(room.image_url, room.image_urls);
-  const finalSrc = error
-    ? DEFAULT_ROOM_IMAGE_SRC
-    : getRoomImageSrc(primaryImage, { width: 160, height: 100, quality: 60 });
+  const finalSrc = error ? DEFAULT_ROOM_IMAGE_SRC : getRoomImageSrc(primaryImage);
 
   return (
     <Image
       src={finalSrc}
       alt={alt}
       fill
-      sizes="100px" // Only used as a tiny thumbnail in a table
-      unoptimized
+      sizes="80px"
       className="object-cover"
       loading="lazy"
       onError={() => setError(true)}

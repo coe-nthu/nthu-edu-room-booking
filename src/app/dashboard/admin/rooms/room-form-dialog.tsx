@@ -433,7 +433,7 @@ export function RoomFormDialog({
                     src={getRoomImageSrc(primaryImageUrl)}
                     alt="主圖預覽"
                     fill
-                    unoptimized
+                    sizes="(max-width: 1024px) 100vw, 400px"
                     className="object-cover"
                   />
                 ) : (
@@ -489,14 +489,10 @@ export function RoomFormDialog({
                         }`}
                       >
                         <Image
-                          src={getRoomImageSrc(url, {
-                            width: 120,
-                            height: 120,
-                            quality: 60,
-                          })}
+                          src={getRoomImageSrc(url)}
                           alt={`空間圖片 ${index + 1}`}
                           fill
-                          unoptimized
+                          sizes="80px"
                           className="object-cover"
                         />
                         <div className="absolute inset-0 flex flex-col justify-between bg-black/45 p-1 opacity-0 transition-opacity group-hover:opacity-100">

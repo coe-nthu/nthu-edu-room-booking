@@ -71,7 +71,6 @@ export default function RulesPage() {
                 alt="完整規定流程圖"
                 width={1920}
                 height={1080}
-                unoptimized
                 className="w-full h-auto object-contain"
               />
             </div>
