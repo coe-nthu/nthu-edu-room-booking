@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -86,5 +86,30 @@ describe("SpaceList", () => {
     await waitFor(() => {
       expect(screen.getByText("沒有找到符合條件的空間")).toBeTruthy();
     });
+  });
+
+  it("tries another gallery image when the primary image fails", () => {
+    render(
+      <SpaceList
+        initialRooms={[
+          room({
+            id: "gallery-room",
+            name: "Gallery Room",
+            image_url: "/missing.jpg",
+            image_urls: ["/valid.jpg", "/other.jpg"],
+          }),
+        ]}
+      />,
+    );
+
+    const image = screen.getByAltText("Gallery Room");
+    expect(image).toHaveAttribute("src", "/missing.jpg");
+
+    fireEvent.error(image);
+
+    expect(screen.getByAltText("Gallery Room")).toHaveAttribute(
+      "src",
+      "/valid.jpg",
+    );
   });
 });
