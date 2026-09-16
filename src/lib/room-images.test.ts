@@ -4,6 +4,7 @@ import {
   DEFAULT_ROOM_IMAGE_SRC,
   getPrimaryRoomImage,
   getRoomGalleryImages,
+  getRoomImageCandidates,
   getRoomImageSrc,
   getRoomImageStoragePath,
   MAX_ROOM_IMAGES,
@@ -91,6 +92,12 @@ describe("room image gallery helpers", () => {
     expect(getPrimaryRoomImage("missing.jpg", ["primary.jpg"])).toBe(
       "missing.jpg",
     );
+  });
+
+  it("puts the primary image first and keeps gallery images as fallbacks", () => {
+    expect(
+      getRoomImageCandidates("missing.jpg", ["valid.jpg", "other.jpg"]),
+    ).toEqual(["missing.jpg", "valid.jpg", "other.jpg"]);
   });
 
   it("splits primary and thumbnail images for the borrowing page", () => {

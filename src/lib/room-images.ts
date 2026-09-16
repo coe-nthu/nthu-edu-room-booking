@@ -39,6 +39,18 @@ export function getPrimaryRoomImage(
   return normalizedImages[0] ?? null;
 }
 
+export function getRoomImageCandidates(
+  imageUrl: string | null | undefined,
+  imageUrls: unknown,
+) {
+  const images = normalizeRoomImageList(imageUrls, imageUrl);
+  const primaryImage = getPrimaryRoomImage(imageUrl, imageUrls);
+
+  return primaryImage
+    ? [primaryImage, ...images.filter((image) => image !== primaryImage)]
+    : images;
+}
+
 export function getRoomGalleryImages(
   imageUrl: string | null | undefined,
   imageUrls: unknown,
