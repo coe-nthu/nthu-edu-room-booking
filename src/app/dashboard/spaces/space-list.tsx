@@ -5,7 +5,7 @@ import { Room } from "@/utils/supabase/queries";
 import { compareFloors, compareRoomsByFloor } from "@/lib/rooms";
 import {
   DEFAULT_ROOM_IMAGE_SRC,
-  getPrimaryRoomImage,
+  getRoomImageCandidates,
   getRoomImageSrc,
 } from "@/lib/room-images";
 import { Input } from "@/components/ui/input";
@@ -177,7 +177,10 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
               <Card className="h-full overflow-hidden flex flex-col group-hover:shadow-md transition-shadow">
                 <div className="relative aspect-video bg-muted">
                   <RoomImage
-                    src={getPrimaryRoomImage(room.image_url, room.image_urls)}
+                    sources={getRoomImageCandidates(
+                      room.image_url,
+                      room.image_urls,
+                    )}
                     alt={room.name}
                     priority={index < 4}
                   />
@@ -256,16 +259,29 @@ export function SpaceList({ initialRooms }: SpaceListProps) {
 
 // Helper component to handle image fallback
 function RoomImage({
-  src,
+  sources,
   alt,
   priority = false,
 }: {
-  src: string | null;
+  sources: string[];
   alt: string;
   priority?: boolean;
 }) {
-  const [error, setError] = useState(false);
-  const finalSrc = error ? DEFAULT_ROOM_IMAGE_SRC : getRoomImageSrc(src);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const [hasError, setHasError] = useState(false);
+  const currentSource = sources[sourceIndex] ?? null;
+  const finalSrc = hasError
+    ? DEFAULT_ROOM_IMAGE_SRC
+    : getRoomImageSrc(currentSource);
+
+  const handleError = () => {
+    if (sourceIndex < sources.length - 1) {
+      setSourceIndex((index) => index + 1);
+      return;
+    }
+
+    setHasError(true);
+  };
 
   return (
     <Image
@@ -275,7 +291,7 @@ function RoomImage({
       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
       className="object-cover transition-transform group-hover:scale-105"
       priority={priority}
-      onError={() => setError(true)}
+      onError={handleError}
     />
   );
 }
